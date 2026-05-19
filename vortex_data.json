@@ -1,0 +1,1524 @@
+{
+  "usuarios": {
+    "default": {
+      "plano": "elite_lifetime",
+      "saldo": 4916,
+      "limites_usados": {
+        "chat": 5
+      },
+      "data_criacao": "2026-05-10T21:50:38.159322",
+      "ultima_recarga_elite": "2026-05-12T01:07:23.664388",
+      "ultimo_reset_limites": "2026-05-18"
+    }
+  },
+  "historico": {
+    "default": [
+      {
+        "tipo": "bonus_boas_vindas",
+        "quantidade": 500,
+        "timestamp": "2026-05-10T21:50:38.159322"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 500,
+        "saldo_novo": 499,
+        "timestamp": "2026-05-10T21:50:38.885239"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 499,
+        "saldo_novo": 498,
+        "timestamp": "2026-05-10T21:54:12.924155"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 498,
+        "saldo_novo": 497,
+        "timestamp": "2026-05-10T21:56:19.236498"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 497,
+        "saldo_novo": 496,
+        "timestamp": "2026-05-10T21:57:09.302057"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 496,
+        "saldo_novo": 495,
+        "timestamp": "2026-05-10T22:00:58.151138"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 495,
+        "saldo_novo": 494,
+        "timestamp": "2026-05-10T22:09:42.585570"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 494,
+        "saldo_novo": 493,
+        "timestamp": "2026-05-10T22:20:26.848694"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_video",
+        "quantidade": 50,
+        "saldo_anterior": 493,
+        "saldo_novo": 443,
+        "timestamp": "2026-05-10T22:21:43.066725"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 5,
+        "saldo_anterior": 443,
+        "saldo_novo": 438,
+        "timestamp": "2026-05-10T22:35:31.010324"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 438,
+        "saldo_novo": 437,
+        "timestamp": "2026-05-10T22:39:20.880963"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_video",
+        "quantidade": 50,
+        "saldo_anterior": 437,
+        "saldo_novo": 387,
+        "timestamp": "2026-05-10T22:40:17.717069"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 387,
+        "saldo_novo": 386,
+        "timestamp": "2026-05-10T23:10:19.477004"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 386,
+        "saldo_novo": 385,
+        "timestamp": "2026-05-10T23:31:59.035313"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 385,
+        "saldo_novo": 382,
+        "timestamp": "2026-05-10T23:32:29.692901"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 382,
+        "saldo_novo": 379,
+        "timestamp": "2026-05-10T23:32:29.696955"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 379,
+        "saldo_novo": 376,
+        "timestamp": "2026-05-10T23:32:47.322806"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 376,
+        "saldo_novo": 373,
+        "timestamp": "2026-05-10T23:32:49.858249"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 373,
+        "saldo_novo": 370,
+        "timestamp": "2026-05-10T23:32:57.162991"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 370,
+        "saldo_novo": 367,
+        "timestamp": "2026-05-10T23:33:18.494399"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 367,
+        "saldo_novo": 364,
+        "timestamp": "2026-05-10T23:33:18.497652"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 364,
+        "saldo_novo": 361,
+        "timestamp": "2026-05-10T23:33:19.174576"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 361,
+        "saldo_novo": 358,
+        "timestamp": "2026-05-10T23:33:19.176612"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 358,
+        "saldo_novo": 357,
+        "timestamp": "2026-05-10T23:36:56.724467"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 357,
+        "saldo_novo": 356,
+        "timestamp": "2026-05-10T23:39:26.965536"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 356,
+        "saldo_novo": 355,
+        "timestamp": "2026-05-10T23:42:36.160445"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 355,
+        "saldo_novo": 354,
+        "timestamp": "2026-05-10T23:43:29.884984"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 354,
+        "saldo_novo": 353,
+        "timestamp": "2026-05-10T23:47:12.620721"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 353,
+        "saldo_novo": 352,
+        "timestamp": "2026-05-10T23:51:01.643676"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 352,
+        "saldo_novo": 351,
+        "timestamp": "2026-05-10T23:51:24.558096"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 351,
+        "saldo_novo": 350,
+        "timestamp": "2026-05-11T00:01:34.681794"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 350,
+        "saldo_novo": 349,
+        "timestamp": "2026-05-11T00:01:52.102271"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 349,
+        "saldo_novo": 348,
+        "timestamp": "2026-05-11T00:04:16.207592"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 348,
+        "saldo_novo": 347,
+        "timestamp": "2026-05-11T00:05:42.464337"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 347,
+        "saldo_novo": 346,
+        "timestamp": "2026-05-11T00:06:11.256320"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 346,
+        "saldo_novo": 345,
+        "timestamp": "2026-05-11T20:08:16.780071"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 345,
+        "saldo_novo": 342,
+        "timestamp": "2026-05-11T20:09:03.173523"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 342,
+        "saldo_novo": 339,
+        "timestamp": "2026-05-11T20:09:03.176595"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "calendario",
+        "quantidade": 2,
+        "saldo_anterior": 339,
+        "saldo_novo": 337,
+        "timestamp": "2026-05-11T20:09:08.712979"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 337,
+        "saldo_novo": 336,
+        "timestamp": "2026-05-11T20:12:01.240195"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 336,
+        "saldo_novo": 335,
+        "timestamp": "2026-05-11T20:12:29.752206"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 335,
+        "saldo_novo": 332,
+        "timestamp": "2026-05-11T20:20:27.270070"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 332,
+        "saldo_novo": 329,
+        "timestamp": "2026-05-11T20:20:27.308888"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 329,
+        "saldo_novo": 326,
+        "timestamp": "2026-05-11T20:20:32.220570"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 326,
+        "saldo_novo": 323,
+        "timestamp": "2026-05-11T20:20:40.107848"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 323,
+        "saldo_novo": 320,
+        "timestamp": "2026-05-11T20:20:52.412040"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 320,
+        "saldo_novo": 317,
+        "timestamp": "2026-05-11T20:21:10.751800"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 317,
+        "saldo_novo": 314,
+        "timestamp": "2026-05-11T20:21:19.550847"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 314,
+        "saldo_novo": 311,
+        "timestamp": "2026-05-11T20:21:19.559517"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 311,
+        "saldo_novo": 310,
+        "timestamp": "2026-05-11T20:30:24.580330"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 310,
+        "saldo_novo": 309,
+        "timestamp": "2026-05-11T20:30:30.177278"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 309,
+        "saldo_novo": 308,
+        "timestamp": "2026-05-11T20:31:24.552535"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 308,
+        "saldo_novo": 307,
+        "timestamp": "2026-05-11T20:43:21.829948"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 307,
+        "saldo_novo": 306,
+        "timestamp": "2026-05-11T20:43:27.884535"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 306,
+        "saldo_novo": 305,
+        "timestamp": "2026-05-11T20:46:28.402049"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 305,
+        "saldo_novo": 304,
+        "timestamp": "2026-05-11T20:46:32.955158"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 304,
+        "saldo_novo": 303,
+        "timestamp": "2026-05-11T20:54:58.208613"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 303,
+        "saldo_novo": 302,
+        "timestamp": "2026-05-11T20:55:09.774315"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 302,
+        "saldo_novo": 301,
+        "timestamp": "2026-05-11T20:57:03.302365"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 301,
+        "saldo_novo": 300,
+        "timestamp": "2026-05-11T20:57:09.673467"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 300,
+        "saldo_novo": 299,
+        "timestamp": "2026-05-11T21:00:57.992620"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 299,
+        "saldo_novo": 298,
+        "timestamp": "2026-05-11T21:01:07.584914"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 298,
+        "saldo_novo": 297,
+        "timestamp": "2026-05-11T21:19:12.785899"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 297,
+        "saldo_novo": 296,
+        "timestamp": "2026-05-11T21:19:19.374336"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 296,
+        "saldo_novo": 295,
+        "timestamp": "2026-05-11T21:20:18.520281"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 295,
+        "saldo_novo": 294,
+        "timestamp": "2026-05-11T21:23:01.217859"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 294,
+        "saldo_novo": 293,
+        "timestamp": "2026-05-11T21:25:15.977375"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 293,
+        "saldo_novo": 292,
+        "timestamp": "2026-05-11T21:25:53.109801"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 292,
+        "saldo_novo": 291,
+        "timestamp": "2026-05-11T21:27:10.888405"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 291,
+        "saldo_novo": 290,
+        "timestamp": "2026-05-11T21:28:55.616579"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 290,
+        "saldo_novo": 289,
+        "timestamp": "2026-05-11T23:28:47.803602"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 289,
+        "saldo_novo": 286,
+        "timestamp": "2026-05-11T23:29:00.508534"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 286,
+        "saldo_novo": 283,
+        "timestamp": "2026-05-11T23:29:00.512102"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 283,
+        "saldo_novo": 280,
+        "timestamp": "2026-05-11T23:29:02.811507"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 280,
+        "saldo_novo": 277,
+        "timestamp": "2026-05-11T23:29:02.815094"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 277,
+        "saldo_novo": 276,
+        "timestamp": "2026-05-12T01:01:39.615758"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 276,
+        "saldo_novo": 275,
+        "timestamp": "2026-05-12T01:01:46.320727"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 275,
+        "saldo_novo": 274,
+        "timestamp": "2026-05-12T01:04:33.129010"
+      },
+      {
+        "tipo": "recarga_elite_mensal",
+        "quantidade": 5000,
+        "timestamp": "2026-05-12T01:07:23.664388"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5274,
+        "saldo_novo": 5271,
+        "timestamp": "2026-05-12T01:07:57.214157"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5271,
+        "saldo_novo": 5268,
+        "timestamp": "2026-05-12T01:07:57.218768"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5268,
+        "saldo_novo": 5265,
+        "timestamp": "2026-05-12T01:07:58.735485"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5265,
+        "saldo_novo": 5262,
+        "timestamp": "2026-05-12T01:07:59.915729"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5262,
+        "saldo_novo": 5259,
+        "timestamp": "2026-05-12T01:07:59.919310"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 5259,
+        "saldo_novo": 5258,
+        "timestamp": "2026-05-12T18:52:20.114200"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 5258,
+        "saldo_novo": 5257,
+        "timestamp": "2026-05-12T18:53:21.846234"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 5257,
+        "saldo_novo": 5256,
+        "timestamp": "2026-05-12T20:23:49.797706"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 5256,
+        "saldo_novo": 5255,
+        "timestamp": "2026-05-12T20:24:13.717042"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 5255,
+        "saldo_novo": 5254,
+        "timestamp": "2026-05-12T20:24:58.736658"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 5254,
+        "saldo_novo": 5253,
+        "timestamp": "2026-05-12T20:25:01.811652"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 5253,
+        "saldo_novo": 5252,
+        "timestamp": "2026-05-12T20:25:11.562209"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "relatorio_semanal",
+        "quantidade": 3,
+        "saldo_anterior": 5252,
+        "saldo_novo": 5249,
+        "timestamp": "2026-05-12T20:26:12.584245"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5249,
+        "saldo_novo": 5246,
+        "timestamp": "2026-05-12T20:26:33.847095"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5246,
+        "saldo_novo": 5243,
+        "timestamp": "2026-05-12T20:26:33.856859"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5243,
+        "saldo_novo": 5240,
+        "timestamp": "2026-05-12T20:26:35.284318"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5240,
+        "saldo_novo": 5237,
+        "timestamp": "2026-05-12T20:26:39.645063"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5237,
+        "saldo_novo": 5234,
+        "timestamp": "2026-05-12T20:26:41.778881"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5234,
+        "saldo_novo": 5231,
+        "timestamp": "2026-05-12T20:26:41.793342"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 5231,
+        "saldo_novo": 5230,
+        "timestamp": "2026-05-12T20:30:47.195802"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 5230,
+        "saldo_novo": 5229,
+        "timestamp": "2026-05-12T20:34:39.383604"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 5229,
+        "saldo_novo": 5228,
+        "timestamp": "2026-05-12T20:39:01.726654"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_video",
+        "quantidade": 50,
+        "saldo_anterior": 5228,
+        "saldo_novo": 5178,
+        "timestamp": "2026-05-12T20:40:42.559236"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 4,
+        "saldo_anterior": 5178,
+        "saldo_novo": 5174,
+        "timestamp": "2026-05-12T20:41:31.593809"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 5174,
+        "saldo_novo": 5173,
+        "timestamp": "2026-05-12T20:41:57.154437"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 4,
+        "saldo_anterior": 5173,
+        "saldo_novo": 5169,
+        "timestamp": "2026-05-12T20:42:20.955602"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 5169,
+        "saldo_novo": 5168,
+        "timestamp": "2026-05-12T20:43:15.946308"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 4,
+        "saldo_anterior": 5168,
+        "saldo_novo": 5164,
+        "timestamp": "2026-05-12T20:43:45.997288"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 4,
+        "saldo_anterior": 5164,
+        "saldo_novo": 5160,
+        "timestamp": "2026-05-12T20:44:58.118518"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 4,
+        "saldo_anterior": 5160,
+        "saldo_novo": 5156,
+        "timestamp": "2026-05-12T20:46:14.755784"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 4,
+        "saldo_anterior": 5156,
+        "saldo_novo": 5152,
+        "timestamp": "2026-05-12T20:47:19.427526"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 4,
+        "saldo_anterior": 5152,
+        "saldo_novo": 5148,
+        "timestamp": "2026-05-12T20:48:25.924243"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 4,
+        "saldo_anterior": 5148,
+        "saldo_novo": 5144,
+        "timestamp": "2026-05-12T20:49:15.587606"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_video",
+        "quantidade": 50,
+        "saldo_anterior": 5144,
+        "saldo_novo": 5094,
+        "timestamp": "2026-05-12T20:54:04.246535"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 5094,
+        "saldo_novo": 5093,
+        "timestamp": "2026-05-12T21:17:34.587333"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 5093,
+        "saldo_novo": 5092,
+        "timestamp": "2026-05-12T21:17:47.438389"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 5092,
+        "saldo_novo": 5091,
+        "timestamp": "2026-05-12T23:45:16.852932"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 5091,
+        "saldo_novo": 5090,
+        "timestamp": "2026-05-12T23:45:29.119832"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5090,
+        "saldo_novo": 5087,
+        "timestamp": "2026-05-12T23:49:09.247838"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5087,
+        "saldo_novo": 5084,
+        "timestamp": "2026-05-12T23:49:09.266160"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5084,
+        "saldo_novo": 5081,
+        "timestamp": "2026-05-12T23:49:12.380834"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5081,
+        "saldo_novo": 5078,
+        "timestamp": "2026-05-12T23:49:13.554736"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 5078,
+        "saldo_novo": 5075,
+        "timestamp": "2026-05-12T23:49:13.560854"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 5,
+        "saldo_anterior": 5075,
+        "saldo_novo": 5070,
+        "timestamp": "2026-05-12T23:51:18.992889"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 5,
+        "saldo_anterior": 5070,
+        "saldo_novo": 5065,
+        "timestamp": "2026-05-12T23:52:09.410211"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 5,
+        "saldo_anterior": 5065,
+        "saldo_novo": 5060,
+        "timestamp": "2026-05-12T23:52:20.895205"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 5060,
+        "saldo_novo": 5059,
+        "timestamp": "2026-05-13T23:07:02.643814"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 5059,
+        "saldo_novo": 5058,
+        "timestamp": "2026-05-13T23:08:06.489209"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 2,
+        "saldo_anterior": 5058,
+        "saldo_novo": 5056,
+        "timestamp": "2026-05-16T01:02:46.011586"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 6,
+        "saldo_anterior": 5056,
+        "saldo_novo": 5050,
+        "timestamp": "2026-05-16T01:16:25.662297"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_video",
+        "quantidade": 48,
+        "saldo_anterior": 5050,
+        "saldo_novo": 5002,
+        "timestamp": "2026-05-16T01:18:43.632227"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 8,
+        "saldo_anterior": 5002,
+        "saldo_novo": 4994,
+        "timestamp": "2026-05-16T01:33:37.985228"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4994,
+        "saldo_novo": 4993,
+        "timestamp": "2026-05-16T01:36:43.518610"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4993,
+        "saldo_novo": 4992,
+        "timestamp": "2026-05-16T01:37:20.913843"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4992,
+        "saldo_novo": 4991,
+        "timestamp": "2026-05-16T01:37:34.754629"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 4991,
+        "saldo_novo": 4988,
+        "timestamp": "2026-05-16T01:39:23.407043"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 4988,
+        "saldo_novo": 4985,
+        "timestamp": "2026-05-16T01:39:31.092063"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4985,
+        "saldo_novo": 4984,
+        "timestamp": "2026-05-16T23:00:40.565273"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4984,
+        "saldo_novo": 4983,
+        "timestamp": "2026-05-17T09:33:01.048992"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4983,
+        "saldo_novo": 4982,
+        "timestamp": "2026-05-17T09:35:22.685231"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4982,
+        "saldo_novo": 4981,
+        "timestamp": "2026-05-17T09:35:30.571566"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4981,
+        "saldo_novo": 4980,
+        "timestamp": "2026-05-17T09:36:41.751398"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4980,
+        "saldo_novo": 4979,
+        "timestamp": "2026-05-17T09:38:29.443335"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 6,
+        "saldo_anterior": 4979,
+        "saldo_novo": 4973,
+        "timestamp": "2026-05-17T09:39:26.566062"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4973,
+        "saldo_novo": 4972,
+        "timestamp": "2026-05-17T10:49:21.798603"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4972,
+        "saldo_novo": 4971,
+        "timestamp": "2026-05-17T10:49:30.301580"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 6,
+        "saldo_anterior": 4971,
+        "saldo_novo": 4965,
+        "timestamp": "2026-05-17T10:50:48.694557"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 6,
+        "saldo_anterior": 4965,
+        "saldo_novo": 4959,
+        "timestamp": "2026-05-17T10:54:32.224116"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4959,
+        "saldo_novo": 4958,
+        "timestamp": "2026-05-17T11:23:20.221185"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4958,
+        "saldo_novo": 4957,
+        "timestamp": "2026-05-17T11:23:28.286103"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4957,
+        "saldo_novo": 4956,
+        "timestamp": "2026-05-17T11:24:22.105896"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4956,
+        "saldo_novo": 4955,
+        "timestamp": "2026-05-17T11:28:54.340466"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4955,
+        "saldo_novo": 4954,
+        "timestamp": "2026-05-17T11:29:02.903788"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4954,
+        "saldo_novo": 4953,
+        "timestamp": "2026-05-17T11:30:43.834508"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4953,
+        "saldo_novo": 4952,
+        "timestamp": "2026-05-17T11:30:52.110200"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4952,
+        "saldo_novo": 4951,
+        "timestamp": "2026-05-17T11:31:39.987943"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4951,
+        "saldo_novo": 4950,
+        "timestamp": "2026-05-17T11:31:48.499273"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4950,
+        "saldo_novo": 4949,
+        "timestamp": "2026-05-17T11:41:00.623238"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4949,
+        "saldo_novo": 4948,
+        "timestamp": "2026-05-17T11:41:09.156278"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4948,
+        "saldo_novo": 4947,
+        "timestamp": "2026-05-17T11:45:37.527863"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4947,
+        "saldo_novo": 4946,
+        "timestamp": "2026-05-17T11:49:15.036071"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4946,
+        "saldo_novo": 4945,
+        "timestamp": "2026-05-17T11:53:25.863994"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4945,
+        "saldo_novo": 4944,
+        "timestamp": "2026-05-17T11:56:18.383953"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4944,
+        "saldo_novo": 4943,
+        "timestamp": "2026-05-17T11:57:07.125276"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4943,
+        "saldo_novo": 4942,
+        "timestamp": "2026-05-17T12:02:11.833547"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4942,
+        "saldo_novo": 4941,
+        "timestamp": "2026-05-17T12:07:04.864929"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4941,
+        "saldo_novo": 4940,
+        "timestamp": "2026-05-17T12:07:31.959663"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4940,
+        "saldo_novo": 4939,
+        "timestamp": "2026-05-17T12:09:10.272880"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4939,
+        "saldo_novo": 4938,
+        "timestamp": "2026-05-17T12:37:05.975020"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4938,
+        "saldo_novo": 4937,
+        "timestamp": "2026-05-17T12:54:20.741014"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4937,
+        "saldo_novo": 4936,
+        "timestamp": "2026-05-17T15:12:45.339430"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_voz",
+        "quantidade": 1,
+        "saldo_anterior": 4936,
+        "saldo_novo": 4935,
+        "timestamp": "2026-05-17T15:13:52.999471"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4935,
+        "saldo_novo": 4934,
+        "timestamp": "2026-05-17T16:11:51.491644"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4934,
+        "saldo_novo": 4933,
+        "timestamp": "2026-05-17T16:13:52.020592"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4933,
+        "saldo_novo": 4932,
+        "timestamp": "2026-05-17T19:15:25.588866"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4932,
+        "saldo_novo": 4931,
+        "timestamp": "2026-05-17T19:16:52.380924"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "tendencias",
+        "quantidade": 3,
+        "saldo_anterior": 4931,
+        "saldo_novo": 4928,
+        "timestamp": "2026-05-17T19:17:21.240232"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4928,
+        "saldo_novo": 4927,
+        "timestamp": "2026-05-17T19:52:48.781445"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4927,
+        "saldo_novo": 4926,
+        "timestamp": "2026-05-17T20:57:08.885828"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4926,
+        "saldo_novo": 4925,
+        "timestamp": "2026-05-17T21:36:27.411275"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "gerar_imagem",
+        "quantidade": 2,
+        "saldo_anterior": 4925,
+        "saldo_novo": 4923,
+        "timestamp": "2026-05-18T00:01:05.713857"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4923,
+        "saldo_novo": 4922,
+        "timestamp": "2026-05-18T23:13:16.293478"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4922,
+        "saldo_novo": 4921,
+        "timestamp": "2026-05-18T23:13:28.871810"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4921,
+        "saldo_novo": 4920,
+        "timestamp": "2026-05-18T23:14:10.328793"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4920,
+        "saldo_novo": 4919,
+        "timestamp": "2026-05-18T23:15:47.767077"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4919,
+        "saldo_novo": 4918,
+        "timestamp": "2026-05-18T23:17:28.560096"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4918,
+        "saldo_novo": 4917,
+        "timestamp": "2026-05-18T23:34:19.161489"
+      },
+      {
+        "tipo": "debito",
+        "operacao": "chat",
+        "quantidade": 1,
+        "saldo_anterior": 4917,
+        "saldo_novo": 4916,
+        "timestamp": "2026-05-18T23:34:28.215387"
+      }
+    ]
+  },
+  "perfil": {
+    "nicho": "Terror / True Crime",
+    "plataformas": [
+      "TikTok"
+    ],
+    "tom_de_voz": "Descontraído",
+    "objetivo": "Viralizar",
+    "tom": "Descontraído",
+    "estilo_visual": "terror",
+    "publico": "jovens 18-25 ",
+    "personagem_principal": "tom serio e pertubado",
+    "estilo_conteudo": "terror true crime",
+    "nome_canal": "terrorpuro"
+  },
+  "dna": {},
+  "canais": {}
+}

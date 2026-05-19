@@ -1,0 +1,83 @@
+"""
+VORTEX — Autenticação com Google OAuth + JWT
+"""
+import os
+import jwt
+import httpx
+import secrets
+from datetime import datetime, timedelta
+from typing import Optional
+from fastapi import HTTPException, Request
+from fastapi.responses import RedirectResponse
+
+GOOGLE_CLIENT_ID     = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+JWT_SECRET           = os.getenv("JWT_SECRET", secrets.token_hex(32))
+VORTEX_URL           = os.getenv("VORTEX_URL", "http://127.0.0.1:8082")
+FRONTEND_URL         = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+# ── JWT ───────────────────────────────────────────────────────────────────────
+def criar_token(usuario_id: str, email: str, nome: str) -> str:
+    payload = {
+        "sub": usuario_id,
+        "email": email,
+        "nome": nome,
+        "exp": datetime.utcnow() + timedelta(days=30),
+        "iat": datetime.utcnow(),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+def verificar_token(token: str) -> dict:
+    try:
+        return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(401, "Token expirado — faça login novamente")
+    except jwt.InvalidTokenError:
+        raise HTTPException(401, "Token inválido")
+
+def get_usuario_token(request: Request) -> Optional[dict]:
+    token = request.cookies.get("vortex_token") or request.headers.get("Authorization","").replace("Bearer ","")
+    if not token:
+        return None
+    try:
+        return verificar_token(token)
+    except:
+        return None
+
+# ── GOOGLE OAUTH ──────────────────────────────────────────────────────────────
+def google_auth_url() -> str:
+    if not GOOGLE_CLIENT_ID:
+        return ""
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": f"{VORTEX_URL}/auth/google/callback",
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+    }
+    from urllib.parse import urlencode
+    return f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+
+async def google_callback(code: str) -> dict:
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        raise HTTPException(500, "Google OAuth não configurado")
+    async with httpx.AsyncClient() as client:
+        # Troca code por token
+        r = await client.post("https://oauth2.googleapis.com/token", data={
+            "code": code,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": f"{VORTEX_URL}/auth/google/callback",
+            "grant_type": "authorization_code",
+        })
+        if not r.is_success:
+            raise HTTPException(400, f"Erro ao trocar code: {r.text}")
+        tokens = r.json()
+        # Busca info do usuário
+        r2 = await client.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={"Authorization": f"Bearer {tokens['access_token']}"}
+        )
+        if not r2.is_success:
+            raise HTTPException(400, "Erro ao buscar usuário Google")
+        return r2.json()

@@ -1,0 +1,38 @@
+-- VORTEX AI — Setup do banco de dados
+
+-- Tabela de usuários
+CREATE TABLE IF NOT EXISTS usuarios (
+  id TEXT PRIMARY KEY,
+  email TEXT,
+  nome TEXT,
+  foto TEXT,
+  plano TEXT DEFAULT 'free',
+  creditos INTEGER DEFAULT 500,
+  nicho TEXT,
+  perfil JSONB DEFAULT '{}',
+  criado_em TIMESTAMPTZ DEFAULT NOW(),
+  atualizado_em TIMESTAMPTZ DEFAULT NOW(),
+  ultimo_login TIMESTAMPTZ
+);
+
+-- Tabela de gerações (histórico)
+CREATE TABLE IF NOT EXISTS geracoes (
+  id BIGSERIAL PRIMARY KEY,
+  usuario_id TEXT REFERENCES usuarios(id),
+  tipo TEXT,
+  dados JSONB DEFAULT '{}',
+  criado_em TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Índices para performance
+CREATE INDEX IF NOT EXISTS idx_geracoes_usuario ON geracoes(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_geracoes_tipo ON geracoes(tipo);
+CREATE INDEX IF NOT EXISTS idx_geracoes_criado ON geracoes(criado_em DESC);
+
+-- Habilitar RLS
+ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE geracoes ENABLE ROW LEVEL SECURITY;
+
+-- Policies (acesso total via service_role)
+CREATE POLICY "service_role_usuarios" ON usuarios FOR ALL USING (true);
+CREATE POLICY "service_role_geracoes" ON geracoes FOR ALL USING (true);

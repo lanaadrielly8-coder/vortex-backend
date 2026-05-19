@@ -1,0 +1,71 @@
+# ════════════════════════════════════════════════════════════
+#  VORTEX AI v5.0 — Configuração de Ambiente
+#  Copie este conteúdo para um arquivo .env
+# ════════════════════════════════════════════════════════════
+
+# ── TEXTO / CHAT (Groq + Gemini) ─────────────────────────────
+# Groq: https://console.groq.com/keys
+GROQ_API_KEY=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
+
+# Gemini: https://aistudio.google.com/app/apikey
+GEMINI_API_KEY=AIzaSyBpQzbVYmAOB5A3SXDHZNUt8x4lfGBEED8
+
+
+# ── IMAGEM IA (Leonardo AI) ──────────────────────────────────
+# Leonardo: https://app.leonardo.ai/settings
+# Plano: $10/mês (Apprentice Standard) — 8500 tokens/mês
+LEONARDO_API_KEY=
+
+
+# ── VÍDEO IA (Runway Gen-3) ──────────────────────────────────
+# Runway: https://runwayml.com/
+# Plano: $12/mês (Standard) — 625 créditos (~25 vídeos de 5s)
+RUNWAY_API_KEY=
+
+
+# ── VOZ IA (ElevenLabs) ──────────────────────────────────────
+# ElevenLabs: https://elevenlabs.io/app/speech-synthesis
+# Plano: GRÁTIS 10k chars/mês | $5/mês Creator (30k chars)
+ELEVENLABS_API_KEY=
+
+
+# ── ANÁLISE DE PERFIS (RapidAPI) ─────────────────────────────
+# RapidAPI: https://rapidapi.com/hub
+# Instagram Scraper: https://rapidapi.com/mrngstar/api/instagram-scraper-api2
+# TikTok Scraper: https://rapidapi.com/yi005/api/tiktok-scraper7
+# Plano: $10/mês (Instagram) + $15/mês (TikTok)
+RAPIDAPI_KEY=
+
+
+# ── YOUTUBE STATS (Google Cloud) ─────────────────────────────
+# YouTube Data API v3: https://console.cloud.google.com/apis/library/youtube.googleapis.com
+# Plano: GRÁTIS 10.000 requests/dia
+YOUTUBE_KEY=
+
+
+# ── PAGAMENTOS (Mercado Pago) ────────────────────────────────
+# Mercado Pago: https://www.mercadopago.com.br/developers/panel/app
+MP_ACCESS_TOKEN=
+
+
+# ── APP ───────────────────────────────────────────────────────
+VORTEX_URL=http://localhost:5173
+
+
+# ══════════════════════════════════════════════════════════════
+# 💰 CUSTO MENSAL ESTIMADO (todas APIs)
+# ══════════════════════════════════════════════════════════════
+#
+# Groq:           GRÁTIS ✅
+# Gemini:         GRÁTIS ✅
+# Leonardo AI:    $10/mês
+# Runway Gen-3:   $12/mês (opcional)
+# ElevenLabs:     GRÁTIS (10k chars) ou $5/mês
+# RapidAPI:       $25/mês (Instagram + TikTok)
+# YouTube API:    GRÁTIS ✅
+# Mercado Pago:   GRÁTIS (taxa por transação)
+#
+# TOTAL MÍNIMO:   $35/mês (sem vídeo IA)
+# TOTAL COMPLETO: $52/mês (com vídeo IA)
+#
+# ═════════════════════════════════════════════════════════════════════════
