@@ -1,4 +1,4 @@
-"""
+﻿"""
 VORTEX AI — Backend v6.0 🔥 HOLLYWOOD EDITION
 Porta: 8082
 Rodar: uvicorn main:app --port 8082
@@ -657,7 +657,7 @@ async def chat(data: ChatRequest):
             print(f"[Tavily] ✅ {len(fatos)} chars injetados")
 
     # Só acionar roteiro quando EXPLICITAMENTE pedido
-    kw_roteiro = ["roteiro","script","gera roteiro","cria roteiro","fazer roteiro","monta roteiro","escreve roteiro"]
+    kw_roteiro = ["crie roteiro", "gera roteiro", "cria roteiro", "fazer roteiro", "monta roteiro", "escreve roteiro"]
     eh_roteiro = any(kw in data.texto.lower() for kw in kw_roteiro)
     if eh_roteiro:
         anthropic_ok = bool(os.getenv("ANTHROPIC_API_KEY", ANTHROPIC_API_KEY))
@@ -1994,3 +1994,4 @@ if __name__ == "__main__":
     print("  🏢 MODO AGÊNCIA: múltiplos canais")
     print("═"*70+"\n")
     uvicorn.run(app, host="127.0.0.1", port=8082, reload=False)
+
