@@ -30,6 +30,7 @@ from router import (
     Complexidade,
 )
 from providers import (
+    gerar_texto_chat,
     gerar_texto,
     gerar_texto_roteiro,
     gerar_imagem_leonardo,
