@@ -1513,20 +1513,143 @@ async def analisar_perfil(data: AnalisarPerfilIn):
     if GROQ_API_KEY or GEMINI_API_KEY:
         try:
             contexto = montar_contexto_criador()
-            prompt_ia = (f"Dados {rede} @{perfil}: {resultado.get('seguidores')} seguidores, "
-                f"{resultado.get('engajamento')} engajamento. "
-                + (f"Criador: {contexto}. " if contexto else "")
-                + "Dê 3 recomendações PRÁTICAS e ESPECÍFICAS para crescer (máx 3 linhas cada).")
-            recomendacao, _ = await gerar_texto(
+            
+            # Buscar dados reais do nicho com Tavily
+            dados_mercado = ""
+            if TAVILY_API_KEY:
+                try:
+                    nicho_perfil = resultado.get("nicho", "") or resultado.get("bio", "")[:50]
+                    dados_mercado = await buscar_tavily(f"estratégia crescimento {rede} {nicho_perfil} 2026 Brasil")
+                except:
+                    pass
+
+            prompt_ia = f"""Você é o melhor estrategista de {rede} do Brasil.
+
+DADOS DO PERFIL @{perfil}:
+- Seguidores: {resultado.get('seguidores', 'N/A')}
+- Engajamento: {resultado.get('engajamento', 'N/A')}
+- Posts: {resultado.get('posts', 'N/A')}
+- Bio: {resultado.get('bio', 'N/A')}
+{f"- Contexto do criador: {contexto}" if contexto else ""}
+{f"- Dados do mercado: {dados_mercado[:400]}" if dados_mercado else ""}
+
+Faça uma análise CIRÚRGICA e entregue:
+
+📊 DIAGNÓSTICO (o que está funcionando e o que está matando o crescimento)
+
+🎯 SCORE DO PERFIL: X/100
+- Consistência de conteúdo: X/10
+- Qualidade visual: X/10  
+- Engajamento: X/10
+- Estratégia de nicho: X/10
+- Potencial viral: X/10
+
+🚀 3 AÇÕES IMEDIATAS (o que fazer nos próximos 7 dias)
+
+💡 INSIGHT OCULTO (algo que ninguém está vendo mas que pode explodir o perfil)
+
+⚠️ ERRO CRÍTICO (o maior erro que está impedindo o crescimento)"""
+
+            recomendacao, _ = await gerar_texto_chat(
                 [{"role":"user","content":prompt_ia}],
-                system="Você é estrategista de redes sociais especialista em crescimento orgânico.",
-                max_tokens=400,
+                system="Você é o estrategista de redes sociais mais preciso do Brasil. Seja específico, direto e cirúrgico.",
+                max_tokens=800,
             )
-            resultado["recomendacao_ia"] = recomendacao
+            resultado["analise_completa"] = recomendacao
         except Exception as e:
             print(f"[Análise IA] {e}")
     debitar_creditos(usuario_id, 2, "analise_perfil")
     return {"ok":True,"rede":rede,"perfil":perfil,**resultado}
+
+
+
+
+# ══════════════════════════════════════════════════════════════════
+# 🎬 ANÁLISE DE VÍDEO — Por URL ou upload
+# ══════════════════════════════════════════════════════════════════
+class AnalisarVideoIn(BaseModel):
+    url: Optional[str] = ""
+    transcricao: Optional[str] = ""
+    titulo: Optional[str] = ""
+    views: Optional[int] = 0
+    likes: Optional[int] = 0
+    comentarios: Optional[int] = 0
+    nicho: Optional[str] = "viral"
+
+@app.post("/analisar-video")
+async def analisar_video(data: AnalisarVideoIn):
+    """
+    Analisa um vídeo e retorna:
+    - Por que está ou não viralizando
+    - Score de retenção estimado
+    - O que melhorar
+    - Como replicar o sucesso
+    """
+    # Calcular métricas
+    taxa_engajamento = 0
+    if data.views and data.views > 0:
+        taxa_engajamento = round(((data.likes or 0) + (data.comentarios or 0)) / data.views * 100, 2)
+
+    # Buscar dados sobre o nicho
+    dados_nicho = ""
+    if TAVILY_API_KEY and data.nicho:
+        try:
+            dados_nicho = await buscar_tavily(f"vídeos virais {data.nicho} TikTok 2026 o que funciona")
+        except:
+            pass
+
+    prompt = f"""Você é o melhor analista de vídeos virais do Brasil.
+
+DADOS DO VÍDEO:
+- Título: {data.titulo or "Não informado"}
+- Views: {data.views:,} 
+- Likes: {data.likes:,}
+- Comentários: {data.comentarios:,}
+- Taxa de engajamento: {taxa_engajamento}%
+- Nicho: {data.nicho}
+{f"- Transcrição/Roteiro: {data.transcricao[:500]}" if data.transcricao else ""}
+{f"- Dados do mercado: {dados_nicho[:300]}" if dados_nicho else ""}
+
+Entregue uma análise CINEMATOGRÁFICA e CIRÚRGICA:
+
+🎯 DIAGNÓSTICO VIRAL
+Por que este vídeo está/não está viralizando (seja específico)
+
+📊 SCORE DE RETENÇÃO: X/10
+- Hook (0-3s): X/10 — [análise]
+- Conflito (3-15s): X/10 — [análise]
+- Escalada (15-40s): X/10 — [análise]
+- Virada (40-50s): X/10 — [análise]
+- Final (50-60s): X/10 — [análise]
+
+💡 FÓRMULA DO SUCESSO
+O que exatamente está fazendo este vídeo funcionar (ou não)
+
+🚀 COMO REPLICAR
+3 ideias concretas de vídeos baseados nesta análise
+
+⚡ MELHORIA IMEDIATA
+Se fosse refazer este vídeo, o que mudaria nos primeiros 3 segundos"""
+
+    try:
+        analise, _ = await gerar_texto_chat(
+            [{"role": "user", "content": prompt}],
+            system="Você é o analista de vídeos virais mais preciso do Brasil. Use dados reais e seja específico.",
+            max_tokens=1000,
+        )
+        return {
+            "ok": True,
+            "metricas": {
+                "views": data.views,
+                "likes": data.likes,
+                "comentarios": data.comentarios,
+                "taxa_engajamento": taxa_engajamento,
+                "classificacao": "VIRAL" if taxa_engajamento > 5 else "POTENCIAL" if taxa_engajamento > 2 else "BAIXO ENGAJAMENTO"
+            },
+            "analise": analise
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Erro na análise: {str(e)[:100]}")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -2322,6 +2445,123 @@ async def gerar_video_wavespeed(prompt: str, duracao: int = 5, modelo: str = "wa
 
 
 # ── Endpoint /me — retorna tudo do usuário de uma vez ─────────────────────────
+
+
+# ══════════════════════════════════════════════════════════════════
+# 🎬 VIDEO FACELESS AUTOMÁTICO — O maior diferencial do Vortex
+# Fluxo: Tema → Roteiro → Prompts de imagem → Imagens → Narração → Vídeo final
+# ══════════════════════════════════════════════════════════════════
+class VideoFacelessRequest(BaseModel):
+    tema: str
+    nicho: Optional[str] = "viral"
+    duracao: Optional[int] = 60
+    estilo: Optional[str] = "cinematico"
+    voz_id: Optional[str] = "onwK4e9ZLuTAKqWW03F9"
+    plataforma: Optional[str] = "TikTok"
+
+@app.post("/video-faceless")
+async def gerar_video_faceless(request: VideoFacelessRequest):
+    """
+    Gera um vídeo faceless completo em 1 clique:
+    1. Gera roteiro viral do tema
+    2. Extrai cenas e prompts de imagem
+    3. Gera imagens para cada cena
+    4. Gera narração com ElevenLabs
+    5. Retorna tudo pronto para montar
+    """
+    resultado = {
+        "ok": True,
+        "tema": request.tema,
+        "etapas": {}
+    }
+
+    # ETAPA 1 — Gerar roteiro
+    try:
+        system = VORTEX_CRIADOR
+        prompt_roteiro = f"""Crie um roteiro faceless viral de {request.duracao} segundos para {request.plataforma}.
+
+TEMA: {request.tema}
+NICHO: {request.nicho}
+ESTILO: {request.estilo}
+
+FORMATO ESPECIAL PARA VÍDEO FACELESS:
+Divida em exatamente 5 CENAS numeradas.
+Para cada cena forneça:
+- NARRAÇÃO: texto exato que será narrado
+- VISUAL: descrição detalhada da imagem (em inglês, para gerar com IA)
+- DURAÇÃO: segundos desta cena
+
+Formato obrigatório:
+CENA 1 ({request.duracao//5}s)
+NARRAÇÃO: [texto]
+VISUAL: [descrição em inglês para gerar imagem]
+
+CENA 2 ...
+
+Ao final, inclua:
+TÍTULO: [título viral]
+LEGENDA: [legenda para TikTok]
+HASHTAGS: [hashtags]"""
+
+        msgs = [{"role": "user", "content": prompt_roteiro}]
+        roteiro, _ = await gerar_texto_roteiro(msgs, system=system, max_tokens=2000)
+        resultado["etapas"]["roteiro"] = roteiro
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao gerar roteiro: {str(e)[:100]}")
+
+    # ETAPA 2 — Extrair cenas e gerar imagens
+    import re as _re
+    cenas = []
+    visuais = _re.findall(r'VISUAL:\s*(.+?)(?=CENA|\Z)', roteiro, _re.DOTALL)
+    narracoes = _re.findall(r'NARRAÇÃO:\s*(.+?)(?=VISUAL|CENA|\Z)', roteiro, _re.DOTALL)
+
+    imagens_geradas = []
+    for i, visual in enumerate(visuais[:5]):
+        try:
+            visual_limpo = visual.strip()[:300]
+            # Enriquecer o prompt visual
+            prompt_img = await interpretar_prompt_inteligente(visual_limpo, tipo="video")
+            img_url = await gerar_imagem_wavespeed(prompt_img, modelo="wavespeed-ai/flux-dev")
+            imagens_geradas.append({
+                "cena": i + 1,
+                "prompt": prompt_img,
+                "url": img_url,
+                "narracao": narracoes[i].strip() if i < len(narracoes) else ""
+            })
+        except Exception as e:
+            imagens_geradas.append({
+                "cena": i + 1,
+                "erro": str(e)[:50],
+                "narracao": narracoes[i].strip() if i < len(narracoes) else ""
+            })
+
+    resultado["etapas"]["imagens"] = imagens_geradas
+
+    # ETAPA 3 — Gerar narração completa
+    try:
+        texto_narracao = " ".join([n.strip() for n in narracoes if n.strip()])
+        if texto_narracao:
+            audio_url = await gerar_voz_elevenlabs(texto_narracao[:1000], voz_id=request.voz_id)
+            resultado["etapas"]["audio"] = audio_url
+    except Exception as e:
+        resultado["etapas"]["audio_erro"] = str(e)[:100]
+
+    # ETAPA 4 — Extrair metadados
+    titulo_match = _re.search(r'TÍTULO:\s*(.+)', roteiro)
+    legenda_match = _re.search(r'LEGENDA:\s*(.+)', roteiro)
+    hashtags_match = _re.search(r'HASHTAGS:\s*(.+)', roteiro)
+
+    resultado["metadados"] = {
+        "titulo": titulo_match.group(1).strip() if titulo_match else request.tema,
+        "legenda": legenda_match.group(1).strip() if legenda_match else "",
+        "hashtags": hashtags_match.group(1).strip() if hashtags_match else "",
+        "plataforma": request.plataforma,
+        "duracao": request.duracao
+    }
+
+    return resultado
+
+
 @app.get("/me")
 def get_me():
     usuario_id = "default"
