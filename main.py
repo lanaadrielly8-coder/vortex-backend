@@ -30,7 +30,6 @@ from router import (
     Complexidade,
 )
 from providers import (
-    gerar_texto_chat,
     gerar_texto,
     gerar_texto_roteiro,
     gerar_imagem_leonardo,
@@ -86,6 +85,7 @@ app = FastAPI(title="Vortex AI Backend", version="6.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
