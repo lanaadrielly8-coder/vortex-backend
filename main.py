@@ -1,25 +1,4 @@
-﻿"""
-VORTEX AI — Backend v6.0 🔥 HOLLYWOOD EDITION
-Porta: 8082
-Rodar: uvicorn main:app --port 8082
-
-🚀 NOVIDADES v6.0:
-  ✅ CLOUDO MODELO turbinado — Roteirista de Hollywood
-  ✅ Modo Diretor — segundo a segundo, ângulo a ângulo
-  ✅ Score Viral — nota 0-10 em 5 dimensões
-  ✅ Modo Série — 3 episódios conectados com gancho
-  ✅ DNA do Criador — aprende e replica o estilo
-  ✅ Modo A/B — 2 versões do mesmo roteiro
-  ✅ Storyboard IA — imagem de cada cena em sequência
-  ✅ Pacote Completo — roteiro+prompt+áudio+legenda+hashtags
-  ✅ Radar de Trends — o que está explodindo agora por nicho
-  ✅ Calendário Inteligente — melhor dia/hora para postar
-  ✅ Sugestão Proativa — Vortex avisa trends sem pedir
-  ✅ Relatório Semanal — o que viralizou, o que testar
-  ✅ Modo Agência — múltiplos canais com DNAs diferentes
-"""
-
-import os, json, asyncio, base64
+﻿import os, json, asyncio, base64
 from datetime import datetime, date
 from database import (
     get_usuario_db, salvar_usuario_db,
@@ -160,6 +139,83 @@ Regras importantes:
 • NUNCA gere roteiro completo no chat — para isso existe a aba Roteiro
 
 Você é o assistente mais poderoso que um criador brasileiro pode ter."""
+
+# ══════════════════════════════════════════════════════════════════
+# MODO CRIADOR — Especialista em conteúdo viral e TikTok
+# ══════════════════════════════════════════════════════════════════
+VORTEX_CRIADOR = """Você é o VORTEX CRIADOR — o especialista número 1 do Brasil em conteúdo viral.
+
+Você vive e respira TikTok, Reels, YouTube Shorts e algoritmos. Cada resposta sua é uma aula de estratégia.
+
+ESPECIALIDADES:
+• Roteiros virais com hook, atos e cliffhanger profissional
+• Análise de algoritmo TikTok/Instagram/YouTube em tempo real
+• Estratégia de crescimento por nicho específico
+• Tendências — o que está bombando AGORA e por quê
+• Copy viral — títulos, legendas, CTAs que convertem
+• Thumbnail e arte que param o scroll
+• Calendário editorial 30 dias
+• Score viral de qualquer ideia ou roteiro
+
+COMO VOCÊ PENSA:
+• Sempre pergunta: isso vai parar o scroll em 0.3 segundos?
+• Usa dados reais: "esse formato gera 3x mais comentários porque..."
+• Fala como um estrategista, não como professor
+• Dá exemplos específicos do nicho do criador
+• Nunca diz "depende" sem explicar exatamente do quê depende
+
+REGRAS:
+• Respostas diretas e acionáveis — sem enrolação
+• Sempre dá pelo menos 1 exemplo prático
+• Quando sugerir algo, diz o motivo estratégico
+• Nunca inventa dados sobre pessoas reais sem avisar
+• Se não souber algo atual, pesquisa antes de responder
+
+Você é o co-piloto estratégico que todo criador brasileiro precisava."""
+
+# ══════════════════════════════════════════════════════════════════
+# MODO ASSISTENTE — IA geral inteligente tipo Claude
+# ══════════════════════════════════════════════════════════════════
+VORTEX_ASSISTENTE = """Você é o VORTEX ASSISTENTE — uma inteligência artificial avançada e completa.
+
+Você é equivalente aos melhores assistentes de IA do mundo. Pensa profundamente, raciocina com clareza e entrega respostas de alta qualidade em qualquer área do conhecimento.
+
+CAPACIDADES:
+• Análise profunda e raciocínio lógico complexo
+• Matemática, ciência, programação, engenharia
+• Filosofia, história, literatura, arte
+• Medicina, direito, finanças (com ressalvas)
+• Escrita criativa, poesia, storytelling
+• Análise de dados e tomada de decisão
+• Planejamento estratégico e resolução de problemas
+• Tradução e comunicação em múltiplos idiomas
+• Código em qualquer linguagem de programação
+• Pesquisa e síntese de informações complexas
+
+COMO VOCÊ PENSA:
+• Analisa todos os ângulos antes de responder
+• Distingue fatos de opiniões claramente
+• Admite quando não sabe algo — nunca inventa
+• Usa raciocínio passo a passo para problemas complexos
+• Calibra a profundidade da resposta ao nível da pergunta
+• Questiona premissas incorretas com respeito
+
+PERSONALIDADE:
+• Inteligente mas acessível — não usa jargão desnecessário
+• Honesto — diz a verdade mesmo quando é difícil
+• Curioso — genuinamente interessado na pergunta
+• Direto — vai ao ponto sem enrolação
+• Empático — entende o contexto humano por trás de cada pergunta
+
+REGRAS:
+• Nunca finge saber o que não sabe
+• Não tem opiniões políticas ou religiosas fortes
+• Não gera conteúdo prejudicial
+• Sempre indica quando algo exige profissional especializado
+• Responde em português brasileiro natural e fluido
+
+Você é o assistente mais inteligente e confiável que existe."""
+
 
 CLOUDO_MODELO = """Você é o VORTEX DIRECTOR — o cérebro mais avançado de criação de roteiros virais do Brasil.
 
@@ -449,6 +505,7 @@ class ChatRequest(BaseModel):
     system_prompt: Optional[str] = ""
     historico: Optional[list] = []
     canal_id: Optional[str] = "default"
+    modo: Optional[str] = "criador"  # "criador" | "assistente"
 
 class ImageRequest(BaseModel):
     prompt: str
@@ -1140,19 +1197,40 @@ Entregue TUDO:
 10. Preview do próximo episódio"""
 
     else:
-        prompt = f"""Crie um roteiro viral de 60 segundos — formato {data.formato} para {plataforma}.
+        # Buscar tendências reais do nicho antes de gerar
+        tendencias_reais = ""
+        if TAVILY_API_KEY:
+            try:
+                tendencias_reais = await buscar_tavily(f"tendências virais {data.nicho or data.tema} TikTok 2026 Brasil")
+            except:
+                pass
 
+        prompt = f"""Crie um roteiro viral PROFISSIONAL de 60 segundos para {plataforma}.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BRIEFING DO ROTEIRO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TEMA: {data.tema}
+FORMATO: {data.formato}
+PLATAFORMA: {plataforma}
+NICHO: {data.nicho or "conteúdo viral"}
 {f"PERFIL DO CRIADOR: {contexto}" if contexto else ""}
+{f"TENDÊNCIAS REAIS DO NICHO:{chr(10)}{tendencias_reais[:600]}" if tendencias_reais else ""}
 
-INSTRUÇÕES CRIATIVAS:
-1. Pesquise mentalmente casos reais, crimes documentados, experimentos científicos ou histórias verificáveis sobre "{data.tema}"
-2. Se não tiver dados reais, INVENTE com hiper-especificidade: nomes, idades, cidades, datas concretas
-3. Use pelo menos UMA das técnicas: POV imersivo / Revelação progressiva / Depoimento pessoal / Fato chocante
-4. O hook deve ser uma afirmação perturbadora — NUNCA uma pergunta
-5. A virada do ATO 3 deve ser impossível de prever
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIRETRIZES CRIATIVAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Siga EXATAMENTE o formato do manual com falas reais do narrador em cada cena."""
+1. PESQUISA: Busque mentalmente casos reais, crimes documentados, experimentos ou fatos verificáveis sobre "{data.tema}"
+2. ESPECIFICIDADE: Use nomes, datas, lugares e números reais ou inventados com precisão cirúrgica
+3. TÉCNICA: Escolha pelo menos UMA: POV imersivo / Revelação progressiva / Depoimento em 1ª pessoa / Fato chocante + ficção
+4. HOOK: Afirmação perturbadora nos primeiros 2 segundos — NUNCA começa com pergunta
+5. VIRADA: ATO 3 deve ser IMPOSSÍVEL de prever — se der para adivinhar, reescreve
+6. FINAL: Último segundo força comentário, compartilhamento ou próximo episódio
+7. FALAS: Todas as falas do narrador devem ser REAIS e completas — sem "[falar sobre X]"
+8. SCORE: Só entrega se a média for ≥ 8/10 — reescreve se for menor
+
+Siga EXATAMENTE o formato do manual."""
     
     # Injeta fatos reais se Tavily encontrou algo
     if fatos_reais:
@@ -1487,8 +1565,24 @@ async def gerar_imagem(request: ImageRequest):
     saldo = verificar_saldo(usuario_id, creditos)
     if saldo < creditos: raise HTTPException(402, f"Créditos insuficientes. Precisa de {creditos}.")
 
-    # Traduz PT→EN automaticamente
-    prompt_en = await traduzir_prompt(request.prompt)
+    # Sistema inteligente — entende qualquer idioma e otimiza para a API
+    tipo_prompt = "thumbnail" if any(w in request.prompt.lower() for w in ["thumbnail","capa","miniatura","tiktok","youtube","reel","viral","click"]) else "imagem"
+    
+    # Estilo do request enriquece o contexto
+    estilo_ctx = ""
+    ESTILOS_MAP = {
+        "realista": "photorealistic, professional photography, natural lighting, ",
+        "cinematico": "cinematic shot, movie scene, dramatic lighting, anamorphic lens, ",
+        "anime": "anime style, vibrant illustration, manga art, Studio Ghibli inspired, ",
+        "dark": "dark atmosphere, moody, gothic, chiaroscuro lighting, sinister, ",
+        "cartoon": "cartoon style, bold outlines, flat colors, comic book, ",
+        "3d": "3D render, octane render, volumetric lighting, subsurface scattering, ",
+    }
+    if hasattr(request, 'estilo') and request.estilo and request.estilo in ESTILOS_MAP:
+        estilo_ctx = ESTILOS_MAP[request.estilo]
+    
+    prompt_base = estilo_ctx + request.prompt if estilo_ctx else request.prompt
+    prompt_en = await interpretar_prompt_inteligente(prompt_base, tipo=tipo_prompt)
 
     modelo_req = request.modelo or "wavespeed-ai/flux-dev"
     url = None
@@ -1563,8 +1657,24 @@ async def gerar_video(request: VideoRequest):
     saldo = verificar_saldo(usuario_id, creditos_necessarios)
     if saldo < creditos_necessarios: raise HTTPException(402, f"Créditos insuficientes. Precisa de {creditos_necessarios}.")
 
-    # Traduz PT→EN automaticamente
-    prompt_en = await traduzir_prompt(request.prompt)
+    # Sistema inteligente — entende qualquer idioma e otimiza para a API
+    tipo_prompt = "thumbnail" if any(w in request.prompt.lower() for w in ["thumbnail","capa","miniatura","tiktok","youtube","reel","viral","click"]) else "imagem"
+    
+    # Estilo do request enriquece o contexto
+    estilo_ctx = ""
+    ESTILOS_MAP = {
+        "realista": "photorealistic, professional photography, natural lighting, ",
+        "cinematico": "cinematic shot, movie scene, dramatic lighting, anamorphic lens, ",
+        "anime": "anime style, vibrant illustration, manga art, Studio Ghibli inspired, ",
+        "dark": "dark atmosphere, moody, gothic, chiaroscuro lighting, sinister, ",
+        "cartoon": "cartoon style, bold outlines, flat colors, comic book, ",
+        "3d": "3D render, octane render, volumetric lighting, subsurface scattering, ",
+    }
+    if hasattr(request, 'estilo') and request.estilo and request.estilo in ESTILOS_MAP:
+        estilo_ctx = ESTILOS_MAP[request.estilo]
+    
+    prompt_base = estilo_ctx + request.prompt if estilo_ctx else request.prompt
+    prompt_en = await interpretar_prompt_inteligente(prompt_base, tipo=tipo_prompt)
 
     # Verificar se é Kling
     if request.modelo and "kling" in request.modelo.lower():
@@ -1716,26 +1826,95 @@ _trends_cache: dict = {}
 _trends_cache_ts: dict = {}
 
 @app.get("/tendencias")
-async def tendencias(nicho: str = "", plataforma: str = ""):
+async def tendencias(nicho: str = "", plataforma: str = "", pais: str = "BR", idioma: str = "pt"):
+    """
+    Sistema global de tendências — busca tendências reais em tempo real.
+    Detecta o país e idioma automaticamente para resultados localizados.
+    """
     usuario_id = "default"
-    nicho_final = nicho or _perfil.get("nicho","lifestyle")
-    plats = _perfil.get("plataformas",[])
+    nicho_final = nicho or _perfil.get("nicho", "conteúdo viral")
+    plats = _perfil.get("plataformas", [])
     plataforma_final = plataforma or (plats[0] if plats else "TikTok")
-    cache_key = f"{nicho_final}_{plataforma_final}"
+    pais_final = pais or "BR"
+    
+    # Mapa de países para contexto de busca
+    PAISES_CONTEXTO = {
+        "BR": {"nome": "Brasil", "idioma": "português", "moeda": "BRL"},
+        "US": {"nome": "United States", "idioma": "english", "moeda": "USD"},
+        "MX": {"nome": "México", "idioma": "español", "moeda": "MXN"},
+        "AR": {"nome": "Argentina", "idioma": "español", "moeda": "ARS"},
+        "PT": {"nome": "Portugal", "idioma": "português", "moeda": "EUR"},
+        "ES": {"nome": "España", "idioma": "español", "moeda": "EUR"},
+        "FR": {"nome": "France", "idioma": "français", "moeda": "EUR"},
+        "DE": {"nome": "Deutschland", "idioma": "deutsch", "moeda": "EUR"},
+    }
+    ctx_pais = PAISES_CONTEXTO.get(pais_final, PAISES_CONTEXTO["BR"])
+    
+    cache_key = f"{nicho_final}_{plataforma_final}_{pais_final}"
     now = _time.time()
 
-    # Cache válido por 6 horas — não cobra créditos
-    if cache_key in _trends_cache and (now - _trends_cache_ts.get(cache_key,0)) < 21600:
+    # Cache válido por 3 horas
+    if cache_key in _trends_cache and (now - _trends_cache_ts.get(cache_key, 0)) < 10800:
         print(f"[TRENDS] Cache hit: {cache_key}")
         return _trends_cache[cache_key]
 
-    saldo = verificar_saldo(usuario_id, 3)
-    if saldo < 3: raise HTTPException(402, "Créditos insuficientes.")
-    nicho_data = TENDENCIAS_2026.get(nicho_final.lower(), TENDENCIAS_2026.get("lifestyle",{}))
-    dados = {"nicho":nicho_final,"plataforma":plataforma_final,
-             "tendencias_2026":nicho_data.get(plataforma_final,["Conteúdo autêntico"])}
-    debitar_creditos(usuario_id, 3, "tendencias")
-    resp = {"ok":True,"tendencias":dados,"creditos_debitados":3}
+    # Buscar tendências reais com Tavily
+    trends_reais = []
+    if TAVILY_API_KEY:
+        try:
+            query = f"tendências virais {nicho_final} {plataforma_final} {ctx_pais['nome']} 2026"
+            resultado_tavily = await buscar_tavily(query, max_results=5)
+            
+            if resultado_tavily:
+                # Processar com IA para extrair trends estruturadas
+                prompt_trends = f"""Analise essas informações sobre tendências de {nicho_final} no {ctx_pais['nome']}:
+
+{resultado_tavily[:1500]}
+
+Extraia exatamente 5 tendências virais ATUAIS em formato JSON:
+[
+  {{
+    "titulo": "Nome da tendência",
+    "descricao": "O que é e por que está viralizando",
+    "como_usar": "Como o criador de {nicho_final} pode usar isso",
+    "potencial": "alto/médio/baixo",
+    "hashtags": ["#tag1", "#tag2", "#tag3"]
+  }}
+]
+
+Responda APENAS com o JSON, sem explicações."""
+
+                msgs = [{"role": "user", "content": prompt_trends}]
+                resultado_ia, _ = await gerar_texto(msgs, 
+                    system="Você extrai tendências virais em JSON estruturado. Responda APENAS com JSON válido.",
+                    max_tokens=1000, provedor_preferido="groq")
+                
+                import json as _json
+                try:
+                    clean = resultado_ia.strip().replace("```json","").replace("```","").strip()
+                    trends_reais = _json.loads(clean)
+                except:
+                    trends_reais = []
+        except Exception as e:
+            print(f"[TRENDS] Tavily falhou: {e}")
+
+    # Fallback para trends estáticas se Tavily falhar
+    if not trends_reais:
+        nicho_data = TENDENCIAS_2026.get(nicho_final.lower(), TENDENCIAS_2026.get("lifestyle", {}))
+        trends_estaticas = nicho_data.get(plataforma_final, ["Conteúdo autêntico", "POV viral", "Storytelling"])
+        trends_reais = [{"titulo": t, "descricao": "Tendência em alta", "potencial": "alto", "hashtags": []} for t in trends_estaticas[:5]]
+
+    resp = {
+        "ok": True,
+        "nicho": nicho_final,
+        "plataforma": plataforma_final,
+        "pais": ctx_pais["nome"],
+        "idioma": ctx_pais["idioma"],
+        "tendencias": trends_reais,
+        "fonte": "real_time" if TAVILY_API_KEY else "base_dados",
+        "atualizado_em": now
+    }
+    
     _trends_cache[cache_key] = resp
     _trends_cache_ts[cache_key] = now
     return resp
