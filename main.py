@@ -2809,21 +2809,42 @@ async def gerar_imagem_free(request: ImageRequest):
     prompt_en = request.prompt + ", highly detailed, cinematic, 8k uhd, professional photography"
     modelo_req = request.modelo or ""
 
-    # 1. HuggingFace FLUX.1-schnell — gratuito com key
+    modelo_req = request.modelo or "hf_flux"
     hf_key = os.getenv("HF_API_KEY", "")
+
+    # Roteamento por modelo escolhido
+    if modelo_req == "hf_flux":
+        if hf_key:
+            try:
+                url = await gerar_imagem_hf(prompt_en)
+                return {"ok": True, "imagem": url, "modelo": "🤗 HuggingFace FLUX Schnell", "prompt_en": prompt_en}
+            except Exception as e:
+                print(f"[HF] falhou: {e}")
+
+    elif modelo_req == "gemini":
+        try:
+            url = await gerar_imagem_gemini(prompt_en)
+            return {"ok": True, "imagem": url, "modelo": "🍌 Nano Banana Pro (Google)", "prompt_en": prompt_en}
+        except Exception as e:
+            print(f"[Gemini] falhou: {e}")
+
+    elif modelo_req == "pollinations":
+        import urllib.parse as _ul
+        p = _ul.quote(prompt_en[:400])
+        url = f"https://image.pollinations.ai/prompt/{p}?width=1024&height=1024&model=flux&nologo=true&seed={hash(prompt_en)%99999}"
+        return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations Flux", "prompt_en": prompt_en}
+
+    # Fallback automático — tenta tudo
     if hf_key:
         try:
             url = await gerar_imagem_hf(prompt_en)
-            return {"ok": True, "imagem": url, "modelo": "HuggingFace FLUX Schnell ✨", "prompt_en": prompt_en}
-        except Exception as e:
-            print(f"[HF] falhou: {e}")
+            return {"ok": True, "imagem": url, "modelo": "🤗 HuggingFace FLUX (auto)", "prompt_en": prompt_en}
+        except: pass
 
-    # 2. Gemini Imagen — 500 imagens/dia grátis
     try:
         url = await gerar_imagem_gemini(prompt_en)
-        return {"ok": True, "imagem": url, "modelo": "Nano Banana Pro (Google)", "prompt_en": prompt_en}
-    except Exception as e:
-        print(f"[Gemini] falhou: {e}")
+        return {"ok": True, "imagem": url, "modelo": "🍌 Gemini (auto)", "prompt_en": prompt_en}
+    except: pass
 
     # Fallback — Pollinations
     import urllib.parse as _ul
