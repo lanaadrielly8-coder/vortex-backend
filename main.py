@@ -2392,7 +2392,7 @@ async def gerar_imagem_wavespeed(prompt: str, endpoint: str = "wavespeed-ai/flux
         r = await client.post(
             f"https://api.wavespeed.ai/api/v3/{ep}",
             headers={"Authorization": f"Bearer {WAVESPEED_API_KEY}", "Content-Type": "application/json"},
-            json={"prompt": prompt, "size": "1024x1024", "num_images": 1, "seed": -1},
+            json={"prompt": prompt, "width": 1024, "height": 1024, "num_images": 1, "seed": -1},
         )
         if not r.is_success: raise HTTPException(502, f"WaveSpeed imagem erro {r.status_code}: {r.text[:300]}")
         d = r.json()
