@@ -2743,11 +2743,20 @@ HASHTAGS: [hashtags]"""
 
 @app.post("/gerar-imagem-free")
 async def gerar_imagem_free(request: ImageRequest):
-    """Endpoint usando Hugging Face — 100% gratuito, sem fila."""
+    """Endpoint gratuito — Gemini Imagen 3 → HuggingFace → Pollinations."""
     import urllib.parse, base64
     
-    prompt_en = request.prompt + ", highly detailed, cinematic, 8k uhd, professional"
-    
+    prompt_en = request.prompt + ", highly detailed, cinematic, 8k uhd, professional photography"
+    modelo_req = request.modelo or ""
+
+    # Gemini Imagen 3 — 500 imagens/dia grátis
+    if modelo_req == "gemini" or not modelo_req:
+        try:
+            url = await gerar_imagem_gemini(prompt_en)
+            return {"ok": True, "imagem": url, "modelo": "Nano Banana Pro (Google)", "prompt_en": prompt_en}
+        except Exception as e:
+            print(f"[Gemini] falhou: {e}")
+
     # Tenta Hugging Face Inference API (gratuita)
     hf_key = os.getenv("HF_API_KEY", "")
     if hf_key:
