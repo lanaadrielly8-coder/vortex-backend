@@ -513,6 +513,7 @@ class ImageRequest(BaseModel):
     width: Optional[int] = 1024
     height: Optional[int] = 1024
     modelo: Optional[str] = "wavespeed-ai/flux-dev"
+    estilo: Optional[str] = ""
 
 class VideoRequest(BaseModel):
     prompt: str
