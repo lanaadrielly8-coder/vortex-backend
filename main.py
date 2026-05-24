@@ -2813,20 +2813,29 @@ async def gerar_imagem_free(request: ImageRequest):
     hf_key = os.getenv("HF_API_KEY", "")
 
     # Roteamento por modelo escolhido
+    print(f"[IMG-FREE] modelo={modelo_req} hf_key={bool(hf_key)}")
+    
     if modelo_req == "hf_flux":
-        if hf_key:
+        if not hf_key:
+            print("[HF] sem key — usando Gemini")
+        else:
             try:
                 url = await gerar_imagem_hf(prompt_en)
                 return {"ok": True, "imagem": url, "modelo": "🤗 HuggingFace FLUX Schnell", "prompt_en": prompt_en}
             except Exception as e:
-                print(f"[HF] falhou: {e}")
+                print(f"[HF] falhou: {e} — tentando Gemini")
 
     elif modelo_req == "gemini":
         try:
             url = await gerar_imagem_gemini(prompt_en)
             return {"ok": True, "imagem": url, "modelo": "🍌 Nano Banana Pro (Google)", "prompt_en": prompt_en}
         except Exception as e:
-            print(f"[Gemini] falhou: {e}")
+            print(f"[Gemini] falhou: {e} — tentando Pollinations")
+            # Se Gemini falhou, vai direto pro Pollinations
+            import urllib.parse as _ul
+            p = _ul.quote(prompt_en[:400])
+            url = f"https://image.pollinations.ai/prompt/{p}?width=1280&height=1280&model=flux-pro&nologo=true&enhance=true"
+            return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations (fallback Gemini)", "prompt_en": prompt_en}
 
     elif modelo_req == "pollinations":
         import urllib.parse as _ul
