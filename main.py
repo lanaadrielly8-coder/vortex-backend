@@ -2436,6 +2436,68 @@ async def gerar_imagem_gemini(prompt: str, width: int = 1024, height: int = 1024
         raise HTTPException(502, f"Gemini sem imagem na resposta: {str(d)[:200]}")
 
 
+async def gerar_imagem_hf(prompt: str) -> str:
+    """Gera imagem via Hugging Face — FLUX.1-schnell gratuito."""
+    import base64
+    key = os.getenv("HF_API_KEY", "")
+    if not key:
+        raise HTTPException(500, "HF_API_KEY não configurada")
+    
+    MODELOS_IMG = [
+        "black-forest-labs/FLUX.1-schnell",
+        "stabilityai/stable-diffusion-xl-base-1.0",
+        "ByteDance/SDXL-Lightning",
+    ]
+    
+    async with httpx.AsyncClient(timeout=httpx.Timeout(120.0)) as client:
+        for modelo in MODELOS_IMG:
+            try:
+                r = await client.post(
+                    f"https://api-inference.huggingface.co/models/{modelo}",
+                    headers={"Authorization": f"Bearer {key}"},
+                    json={"inputs": prompt},
+                )
+                if r.is_success and r.headers.get("content-type","").startswith("image"):
+                    img_b64 = base64.b64encode(r.content).decode()
+                    print(f"[HF IMG] ✅ {modelo}")
+                    return f"data:image/jpeg;base64,{img_b64}"
+                print(f"[HF IMG] {modelo}: {r.status_code} {r.text[:80]}")
+            except Exception as e:
+                print(f"[HF IMG] {modelo} erro: {e}")
+    raise HTTPException(502, "HuggingFace imagem indisponível")
+
+
+async def gerar_video_hf(prompt: str) -> str:
+    """Gera vídeo via Hugging Face — LTX-Video gratuito."""
+    import base64
+    key = os.getenv("HF_API_KEY", "")
+    if not key:
+        raise HTTPException(500, "HF_API_KEY não configurada")
+    
+    MODELOS_VID = [
+        "Lightricks/LTX-Video",
+        "damo-vilab/text-to-video-ms-1.7b",
+        "cerspense/zeroscope_v2_576w",
+    ]
+    
+    async with httpx.AsyncClient(timeout=httpx.Timeout(180.0)) as client:
+        for modelo in MODELOS_VID:
+            try:
+                r = await client.post(
+                    f"https://api-inference.huggingface.co/models/{modelo}",
+                    headers={"Authorization": f"Bearer {key}"},
+                    json={"inputs": prompt},
+                )
+                if r.is_success and r.headers.get("content-type","").startswith("video"):
+                    vid_b64 = base64.b64encode(r.content).decode()
+                    print(f"[HF VID] ✅ {modelo}")
+                    return f"data:video/mp4;base64,{vid_b64}"
+                print(f"[HF VID] {modelo}: {r.status_code} {r.text[:80]}")
+            except Exception as e:
+                print(f"[HF VID] {modelo} erro: {e}")
+    raise HTTPException(502, "HuggingFace vídeo indisponível")
+
+
 async def gerar_imagem_fal(prompt: str, modelo: str = "fal-ai/flux/dev", width: int = 1024, height: int = 1024) -> str:
     """Gera imagem via FAL.ai — Flux Dev, Flux Pro, SDXL e mais."""
     key = FAL_API_KEY or os.getenv("FAL_API_KEY", "")
@@ -2747,36 +2809,19 @@ async def gerar_imagem_free(request: ImageRequest):
     prompt_en = request.prompt + ", highly detailed, cinematic, 8k uhd, professional photography"
     modelo_req = request.modelo or ""
 
-    # Gemini Imagen 3 — 500 imagens/dia grátis
-    if modelo_req == "gemini" or not modelo_req:
-        try:
-            url = await gerar_imagem_gemini(prompt_en)
-            return {"ok": True, "imagem": url, "modelo": "Nano Banana Pro (Google)", "prompt_en": prompt_en}
-        except Exception as e:
-            print(f"[Gemini] falhou: {e}")
-
-    # Tenta Hugging Face Inference API (gratuita)
+    # 1. HuggingFace FLUX.1-schnell — gratuito com key
     hf_key = os.getenv("HF_API_KEY", "")
     if hf_key:
         try:
-            async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
-                r = await client.post(
-                    "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
-                    headers={"Authorization": f"Bearer {hf_key}"},
-                    json={"inputs": prompt_en},
-                )
-                if r.is_success and r.headers.get("content-type","").startswith("image"):
-                    # Converte bytes para base64 data URL
-                    img_b64 = base64.b64encode(r.content).decode()
-                    url = f"data:image/jpeg;base64,{img_b64}"
-                    return {"ok": True, "imagem": url, "modelo": "HuggingFace FLUX Schnell", "prompt_en": prompt_en}
+            url = await gerar_imagem_hf(prompt_en)
+            return {"ok": True, "imagem": url, "modelo": "HuggingFace FLUX Schnell ✨", "prompt_en": prompt_en}
         except Exception as e:
             print(f"[HF] falhou: {e}")
-    
-    # Gemini Imagen — 500 imagens/dia grátis
+
+    # 2. Gemini Imagen — 500 imagens/dia grátis
     try:
         url = await gerar_imagem_gemini(prompt_en)
-        return {"ok": True, "imagem": url, "modelo": "Google Gemini Imagen 3", "prompt_en": prompt_en}
+        return {"ok": True, "imagem": url, "modelo": "Nano Banana Pro (Google)", "prompt_en": prompt_en}
     except Exception as e:
         print(f"[Gemini] falhou: {e}")
 
@@ -2785,6 +2830,20 @@ async def gerar_imagem_free(request: ImageRequest):
     prompt_safe = _ul.quote(prompt_en[:400])
     url = f"https://image.pollinations.ai/prompt/{prompt_safe}?width=1024&height=1024&model=flux&nologo=true&seed={hash(prompt_en)%99999}"
     return {"ok": True, "imagem": url, "modelo": "Pollinations Flux (free)", "prompt_en": prompt_en}
+
+
+@app.post("/gerar-video-free")
+async def gerar_video_free(request: VideoRequest):
+    """Vídeo gratuito via HuggingFace LTX-Video."""
+    prompt_en = request.prompt + ", cinematic, high quality, smooth motion"
+    hf_key = os.getenv("HF_API_KEY", "")
+    if not hf_key:
+        raise HTTPException(500, "HF_API_KEY não configurada. Configure no Render Environment.")
+    try:
+        url = await gerar_video_hf(prompt_en)
+        return {"ok": True, "video_url": url, "modelo": "HuggingFace LTX-Video (free)", "prompt_en": prompt_en}
+    except Exception as e:
+        raise HTTPException(502, f"Vídeo HF falhou: {str(e)[:100]}")
 
 
 @app.get("/me")
