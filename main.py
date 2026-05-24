@@ -1752,6 +1752,14 @@ async def gerar_imagem(request: ImageRequest):
             except Exception as e:
                 erros.append(f"Leonardo fallback: {e}")
 
+    # FAL.ai — Flux Dev de alta qualidade
+    if not url and FAL_API_KEY:
+        try:
+            url = await gerar_imagem_fal(prompt=prompt_en, modelo="fal-ai/flux/dev", width=request.width or 1024, height=request.height or 1024)
+            modelo_usado = "FAL Flux Dev"
+        except Exception as e:
+            erros.append(f"FAL: {e}")
+
     # Fallback gratuito — Pollinations.ai (sem key, sempre disponível)
     if not url:
         try:
@@ -1839,13 +1847,26 @@ async def gerar_video(request: VideoRequest):
         runway_modelo = "gen3a_turbo" if "turbo" in request.modelo.lower() else "gen3a"
         url = await gerar_video_runway(prompt=prompt_en, duracao=request.duracao, resolucao=request.resolucao, ratio=request.ratio)
         modelo_usado = "Runway Gen-3 " + ("Turbo" if "turbo" in request.modelo.lower() else "Alpha")
+    elif FAL_API_KEY:
+        try:
+            url = await gerar_video_fal(prompt=prompt_en, duracao=request.duracao, modelo="wan")
+            modelo_usado = "FAL WAN 2.2"
+        except Exception as e_fal:
+            erros_vid = [str(e_fal)[:80]]
+            if KLING_ACCESS_KEY:
+                try:
+                    url = await gerar_video_kling(prompt=prompt_en, duracao=min(request.duracao, 5), ratio=request.ratio or "9:16")
+                    modelo_usado = "Kling AI (fallback)"
+                except Exception as ek:
+                    erros_vid.append(str(ek)[:50])
+            if not url:
+                raise HTTPException(502, f"Vídeo indisponível: {'; '.join(erros_vid)}")
     elif WAVESPEED_API_KEY:
         modelo_ws = request.modelo if request.modelo and "wavespeed" in request.modelo else "wavespeed-ai/wan-2.2/t2v-480p"
         try:
             url = await gerar_video_wavespeed(prompt=prompt_en, duracao=request.duracao, modelo=modelo_ws)
             modelo_usado = "WaveSpeed " + modelo_ws.split("/")[-1]
         except Exception as e_ws:
-            # Fallback para Kling se WaveSpeed falhar
             if KLING_ACCESS_KEY:
                 url = await gerar_video_kling(prompt=prompt_en, duracao=min(request.duracao, 5), ratio=request.ratio or "9:16")
                 modelo_usado = "Kling AI (fallback)"
@@ -2394,6 +2415,101 @@ async def buscar_tavily(query: str, max_results: int = 3) -> str:
 
 
 # ── WaveSpeed direto (alternativa ao Leonardo/Runway) ────────────────────────
+async def gerar_imagem_fal(prompt: str, modelo: str = "fal-ai/flux/dev", width: int = 1024, height: int = 1024) -> str:
+    """Gera imagem via FAL.ai — Flux Dev, Flux Pro, SDXL e mais."""
+    key = FAL_API_KEY or os.getenv("FAL_API_KEY", "")
+    if not key:
+        raise HTTPException(500, "FAL_API_KEY não configurada")
+
+    async with httpx.AsyncClient(timeout=httpx.Timeout(120.0)) as client:
+        # Submete o job
+        r = await client.post(
+            f"https://queue.fal.run/{modelo}",
+            headers={"Authorization": f"Key {key}", "Content-Type": "application/json"},
+            json={"prompt": prompt, "image_size": {"width": width, "height": height}, "num_images": 1, "output_format": "jpeg"},
+        )
+        if not r.is_success:
+            raise HTTPException(502, f"FAL imagem erro {r.status_code}: {r.text[:200]}")
+        d = r.json()
+        request_id = d.get("request_id")
+        if not request_id:
+            raise HTTPException(502, f"FAL sem request_id: {d}")
+
+    # Polling
+    async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
+        for i in range(40):
+            await asyncio.sleep(3)
+            poll = await client.get(
+                f"https://queue.fal.run/{modelo}/requests/{request_id}/status",
+                headers={"Authorization": f"Key {key}"},
+            )
+            pd = poll.json()
+            status = pd.get("status")
+            print(f"[FAL] img status={status} ({i*3}s)")
+            if status == "COMPLETED":
+                result = await client.get(
+                    f"https://queue.fal.run/{modelo}/requests/{request_id}",
+                    headers={"Authorization": f"Key {key}"},
+                )
+                rd = result.json()
+                images = rd.get("images", [])
+                if images:
+                    return images[0].get("url", "")
+            if status == "FAILED":
+                raise HTTPException(502, f"FAL imagem falhou: {pd}")
+    raise HTTPException(504, "FAL imagem timeout")
+
+
+async def gerar_video_fal(prompt: str, duracao: int = 5, modelo: str = "fal-ai/wan-t2v") -> str:
+    """Gera vídeo via FAL.ai — WAN 2.2, Kling, e mais."""
+    key = FAL_API_KEY or os.getenv("FAL_API_KEY", "")
+    if not key:
+        raise HTTPException(500, "FAL_API_KEY não configurada")
+
+    MODELOS_FAL = {
+        "wan": "fal-ai/wan-t2v",
+        "kling": "fal-ai/kling-video/v1.6/standard/text-to-video",
+        "minimax": "fal-ai/minimax-video/image-to-video",
+    }
+    modelo_final = MODELOS_FAL.get(modelo, modelo)
+
+    async with httpx.AsyncClient(timeout=httpx.Timeout(120.0)) as client:
+        r = await client.post(
+            f"https://queue.fal.run/{modelo_final}",
+            headers={"Authorization": f"Key {key}", "Content-Type": "application/json"},
+            json={"prompt": prompt, "duration": str(duracao)},
+        )
+        if not r.is_success:
+            raise HTTPException(502, f"FAL vídeo erro {r.status_code}: {r.text[:200]}")
+        d = r.json()
+        request_id = d.get("request_id")
+        if not request_id:
+            raise HTTPException(502, f"FAL sem request_id: {d}")
+
+    # Polling
+    async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
+        for i in range(60):
+            await asyncio.sleep(5)
+            poll = await client.get(
+                f"https://queue.fal.run/{modelo_final}/requests/{request_id}/status",
+                headers={"Authorization": f"Key {key}"},
+            )
+            pd = poll.json()
+            status = pd.get("status")
+            print(f"[FAL] video status={status} ({i*5}s)")
+            if status == "COMPLETED":
+                result = await client.get(
+                    f"https://queue.fal.run/{modelo_final}/requests/{request_id}",
+                    headers={"Authorization": f"Key {key}"},
+                )
+                rd = result.json()
+                video = rd.get("video", {})
+                return video.get("url", "")
+            if status == "FAILED":
+                raise HTTPException(502, f"FAL vídeo falhou")
+    raise HTTPException(504, "FAL vídeo timeout")
+
+
 async def gerar_imagem_wavespeed(prompt: str, endpoint: str = "wavespeed-ai/flux-dev") -> str:
     if not WAVESPEED_API_KEY:
         raise HTTPException(500, "WAVESPEED_API_KEY não configurada")
