@@ -2830,9 +2830,11 @@ async def gerar_imagem_free(request: ImageRequest):
 
     elif modelo_req == "pollinations":
         import urllib.parse as _ul
-        p = _ul.quote(prompt_en[:400])
-        url = f"https://image.pollinations.ai/prompt/{p}?width=1024&height=1024&model=flux&nologo=true&seed={hash(prompt_en)%99999}"
-        return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations Flux", "prompt_en": prompt_en}
+        # Enriquecer prompt para máxima qualidade
+        prompt_rich = prompt_en + ", masterpiece, ultra detailed, professional photography, 8k uhd, sharp focus, perfect composition, award winning, trending on artstation"
+        p = _ul.quote(prompt_rich[:600])
+        url = f"https://image.pollinations.ai/prompt/{p}?width=1280&height=1280&model=flux-pro&nologo=true&enhance=true&seed={hash(prompt_en)%99999}"
+        return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations Flux Pro", "prompt_en": prompt_rich}
 
     # Fallback automático — tenta tudo
     if hf_key:
@@ -2848,9 +2850,10 @@ async def gerar_imagem_free(request: ImageRequest):
 
     # Fallback — Pollinations
     import urllib.parse as _ul
-    prompt_safe = _ul.quote(prompt_en[:400])
-    url = f"https://image.pollinations.ai/prompt/{prompt_safe}?width=1024&height=1024&model=flux&nologo=true&seed={hash(prompt_en)%99999}"
-    return {"ok": True, "imagem": url, "modelo": "Pollinations Flux (free)", "prompt_en": prompt_en}
+    prompt_rich = prompt_en + ", masterpiece, ultra detailed, 8k uhd, sharp focus, cinematic"
+    prompt_safe = _ul.quote(prompt_rich[:600])
+    url = f"https://image.pollinations.ai/prompt/{prompt_safe}?width=1280&height=1280&model=flux-pro&nologo=true&enhance=true&seed={hash(prompt_en)%99999}"
+    return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations Flux Pro (auto)", "prompt_en": prompt_en}
 
 
 @app.post("/gerar-video-free")
