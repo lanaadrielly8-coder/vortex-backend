@@ -1706,7 +1706,11 @@ async def gerar_imagem(request: ImageRequest):
         estilo_ctx = ESTILOS_MAP[request.estilo]
     
     prompt_base = estilo_ctx + request.prompt if estilo_ctx else request.prompt
-    prompt_en = await interpretar_prompt_inteligente(prompt_base, tipo=tipo_prompt)
+    try:
+        prompt_en = await interpretar_prompt_inteligente(prompt_base, tipo=tipo_prompt)
+    except Exception as e_prompt:
+        print(f"[gerar-imagem] prompt inteligente falhou: {e_prompt} — usando prompt original")
+        prompt_en = prompt_base + ", highly detailed, 8k uhd, cinematic lighting, award winning"
 
     modelo_req = request.modelo or "wavespeed-ai/flux-dev"
     url = None
@@ -1798,7 +1802,11 @@ async def gerar_video(request: VideoRequest):
         estilo_ctx = ESTILOS_MAP[request.estilo]
     
     prompt_base = estilo_ctx + request.prompt if estilo_ctx else request.prompt
-    prompt_en = await interpretar_prompt_inteligente(prompt_base, tipo=tipo_prompt)
+    try:
+        prompt_en = await interpretar_prompt_inteligente(prompt_base, tipo=tipo_prompt)
+    except Exception as e_prompt:
+        print(f"[gerar-imagem] prompt inteligente falhou: {e_prompt} — usando prompt original")
+        prompt_en = prompt_base + ", highly detailed, 8k uhd, cinematic lighting, award winning"
 
     # Verificar se é Kling
     if request.modelo and "kling" in request.modelo.lower():
