@@ -2390,9 +2390,9 @@ async def gerar_imagem_wavespeed(prompt: str, endpoint: str = "wavespeed-ai/flux
     # Submete o job
     async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
         r = await client.post(
-            f"https://api.wavespeed.ai/api/v2/{ep}",
+            f"https://api.wavespeed.ai/api/v3/{ep}",
             headers={"Authorization": f"Bearer {WAVESPEED_API_KEY}", "Content-Type": "application/json"},
-            json={"prompt": prompt, "size": "1024x1024", "num_images": 1, "seed": -1, "enable_safety_checker": False},
+            json={"prompt": prompt, "size": "1024x1024", "num_images": 1, "seed": -1},
         )
         if not r.is_success: raise HTTPException(502, f"WaveSpeed imagem erro {r.status_code}: {r.text[:300]}")
         d = r.json()
@@ -2405,7 +2405,7 @@ async def gerar_imagem_wavespeed(prompt: str, endpoint: str = "wavespeed-ai/flux
         for i in range(30):
             await asyncio.sleep(3)
             poll = await client.get(
-                f"https://api.wavespeed.ai/api/v2/predictions/{request_id}/result",
+                f"https://api.wavespeed.ai/api/v3/predictions/{request_id}/result",
                 headers={"Authorization": f"Bearer {WAVESPEED_API_KEY}"},
             )
             pd = poll.json()
@@ -2439,7 +2439,7 @@ async def gerar_video_wavespeed(prompt: str, duracao: int = 5, modelo: str = "wa
         for i in range(40):
             await asyncio.sleep(3)
             poll = await client.get(
-                f"https://api.wavespeed.ai/api/v2/predictions/{request_id}/result",
+                f"https://api.wavespeed.ai/api/v3/predictions/{request_id}/result",
                 headers={"Authorization": f"Bearer {WAVESPEED_API_KEY}"},
             )
             pd = poll.json()
