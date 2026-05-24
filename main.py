@@ -2711,6 +2711,15 @@ HASHTAGS: [hashtags]"""
     return resultado
 
 
+@app.post("/gerar-imagem-free")
+async def gerar_imagem_free(request: ImageRequest):
+    """Endpoint simples usando Pollinations — 100% gratuito, zero dependências."""
+    import urllib.parse
+    prompt_safe = urllib.parse.quote(request.prompt[:400] + ", highly detailed, cinematic, 8k")
+    url = f"https://image.pollinations.ai/prompt/{prompt_safe}?width=1024&height=1024&model=flux&nologo=true"
+    return {"ok": True, "imagem": url, "modelo": "Pollinations Flux (free)", "prompt_en": request.prompt}
+
+
 @app.get("/me")
 def get_me():
     usuario_id = "default"
