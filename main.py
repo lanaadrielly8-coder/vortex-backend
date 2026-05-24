@@ -2409,34 +2409,31 @@ async def buscar_tavily(query: str, max_results: int = 3) -> str:
 
 # ── WaveSpeed direto (alternativa ao Leonardo/Runway) ────────────────────────
 async def gerar_imagem_gemini(prompt: str, width: int = 1024, height: int = 1024) -> str:
-    """Gera imagem via Google Gemini Imagen — 500 imagens/dia grátis."""
+    """Gera imagem via Gemini 2.0 Flash — gratuito."""
     import base64
     key = GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")
     if not key:
         raise HTTPException(500, "GEMINI_API_KEY não configurada")
     
-    # Tenta Imagen 3
     async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
-        for modelo_img in ["imagen-3.0-generate-002", "imagen-3.0-fast-generate-001"]:
-            try:
-                r = await client.post(
-                    f"https://generativelanguage.googleapis.com/v1beta/models/{modelo_img}:predict?key={key}",
-                    headers={"Content-Type": "application/json"},
-                    json={
-                        "instances": [{"prompt": prompt}],
-                        "parameters": {"sampleCount": 1, "aspectRatio": "1:1"}
-                    }
-                )
-                if r.is_success:
-                    d = r.json()
-                    predictions = d.get("predictions", [])
-                    if predictions and predictions[0].get("bytesBase64Encoded"):
-                        img_b64 = predictions[0]["bytesBase64Encoded"]
-                        return f"data:image/jpeg;base64,{img_b64}"
-                print(f"[Gemini] {modelo_img}: {r.status_code} {r.text[:100]}")
-            except Exception as em:
-                print(f"[Gemini] {modelo_img} erro: {em}")
-        raise HTTPException(502, "Gemini Imagen não disponível")
+        r = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key={key}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"responseModalities": ["IMAGE", "TEXT"]}
+            }
+        )
+        if not r.is_success:
+            raise HTTPException(502, f"Gemini erro {r.status_code}: {r.text[:200]}")
+        d = r.json()
+        # Extrair imagem da resposta
+        for part in d.get("candidates", [{}])[0].get("content", {}).get("parts", []):
+            if part.get("inlineData"):
+                img_b64 = part["inlineData"]["data"]
+                mime = part["inlineData"].get("mimeType", "image/jpeg")
+                return f"data:{mime};base64,{img_b64}"
+        raise HTTPException(502, f"Gemini sem imagem na resposta: {str(d)[:200]}")
 
 
 async def gerar_imagem_fal(prompt: str, modelo: str = "fal-ai/flux/dev", width: int = 1024, height: int = 1024) -> str:
