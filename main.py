@@ -2408,6 +2408,36 @@ async def buscar_tavily(query: str, max_results: int = 3) -> str:
 
 
 # ── WaveSpeed direto (alternativa ao Leonardo/Runway) ────────────────────────
+async def gerar_imagem_gemini(prompt: str, width: int = 1024, height: int = 1024) -> str:
+    """Gera imagem via Google Gemini Imagen — 500 imagens/dia grátis."""
+    import base64
+    key = GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")
+    if not key:
+        raise HTTPException(500, "GEMINI_API_KEY não configurada")
+    
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+        r = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key={key}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "instances": [{"prompt": prompt}],
+                "parameters": {
+                    "sampleCount": 1,
+                    "aspectRatio": "1:1",
+                    "outputOptions": {"mimeType": "image/jpeg"},
+                }
+            }
+        )
+        if not r.is_success:
+            raise HTTPException(502, f"Gemini Imagen erro {r.status_code}: {r.text[:200]}")
+        d = r.json()
+        predictions = d.get("predictions", [])
+        if predictions and predictions[0].get("bytesBase64Encoded"):
+            img_b64 = predictions[0]["bytesBase64Encoded"]
+            return f"data:image/jpeg;base64,{img_b64}"
+        raise HTTPException(502, f"Gemini sem imagem: {d}")
+
+
 async def gerar_imagem_fal(prompt: str, modelo: str = "fal-ai/flux/dev", width: int = 1024, height: int = 1024) -> str:
     """Gera imagem via FAL.ai — Flux Dev, Flux Pro, SDXL e mais."""
     key = FAL_API_KEY or os.getenv("FAL_API_KEY", "")
@@ -2713,11 +2743,41 @@ HASHTAGS: [hashtags]"""
 
 @app.post("/gerar-imagem-free")
 async def gerar_imagem_free(request: ImageRequest):
-    """Endpoint simples usando Pollinations — 100% gratuito, zero dependências."""
-    import urllib.parse
-    prompt_safe = urllib.parse.quote(request.prompt[:400] + ", highly detailed, cinematic, 8k")
-    url = f"https://image.pollinations.ai/prompt/{prompt_safe}?width=1024&height=1024&model=flux&nologo=true"
-    return {"ok": True, "imagem": url, "modelo": "Pollinations Flux (free)", "prompt_en": request.prompt}
+    """Endpoint usando Hugging Face — 100% gratuito, sem fila."""
+    import urllib.parse, base64
+    
+    prompt_en = request.prompt + ", highly detailed, cinematic, 8k uhd, professional"
+    
+    # Tenta Hugging Face Inference API (gratuita)
+    hf_key = os.getenv("HF_API_KEY", "")
+    if hf_key:
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+                r = await client.post(
+                    "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+                    headers={"Authorization": f"Bearer {hf_key}"},
+                    json={"inputs": prompt_en},
+                )
+                if r.is_success and r.headers.get("content-type","").startswith("image"):
+                    # Converte bytes para base64 data URL
+                    img_b64 = base64.b64encode(r.content).decode()
+                    url = f"data:image/jpeg;base64,{img_b64}"
+                    return {"ok": True, "imagem": url, "modelo": "HuggingFace FLUX Schnell", "prompt_en": prompt_en}
+        except Exception as e:
+            print(f"[HF] falhou: {e}")
+    
+    # Gemini Imagen — 500 imagens/dia grátis
+    try:
+        url = await gerar_imagem_gemini(prompt_en)
+        return {"ok": True, "imagem": url, "modelo": "Google Gemini Imagen 3", "prompt_en": prompt_en}
+    except Exception as e:
+        print(f"[Gemini] falhou: {e}")
+
+    # Fallback — Pollinations
+    import urllib.parse as _ul
+    prompt_safe = _ul.quote(prompt_en[:400])
+    url = f"https://image.pollinations.ai/prompt/{prompt_safe}?width=1024&height=1024&model=flux&nologo=true&seed={hash(prompt_en)%99999}"
+    return {"ok": True, "imagem": url, "modelo": "Pollinations Flux (free)", "prompt_en": prompt_en}
 
 
 @app.get("/me")
