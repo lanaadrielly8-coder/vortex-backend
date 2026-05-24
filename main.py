@@ -586,13 +586,6 @@ class PagamentoRequest(BaseModel):
 async def auth_google():
     url = google_auth_url()
     if not url:
-        try:
-            import urllib.parse
-            p = urllib.parse.quote(prompt_en[:400])
-            url = "https://image.pollinations.ai/prompt/" + p + "?width=1024&height=1024&model=flux&nologo=true"
-            modelo_usado = "Pollinations Flux (free)"
-        except: pass
-    if not url:
         raise HTTPException(500, "GOOGLE_CLIENT_ID não configurado")
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url)
@@ -1713,11 +1706,7 @@ async def gerar_imagem(request: ImageRequest):
         estilo_ctx = ESTILOS_MAP[request.estilo]
     
     prompt_base = estilo_ctx + request.prompt if estilo_ctx else request.prompt
-    try:
-        prompt_en = await interpretar_prompt_inteligente(prompt_base, tipo=tipo_prompt)
-    except Exception as e_prompt:
-        print(f"[gerar-imagem] prompt inteligente falhou: {e_prompt} — usando prompt original")
-        prompt_en = prompt_base + ", highly detailed, 8k uhd, cinematic lighting, award winning"
+    prompt_en = prompt_base + ", highly detailed, 8k uhd, cinematic lighting, award winning"
 
     modelo_req = request.modelo or "wavespeed-ai/flux-dev"
     url = None
@@ -1779,14 +1768,6 @@ async def gerar_imagem(request: ImageRequest):
             erros.append(f"Pollinations: {e}")
 
     if not url:
-        try:
-            import urllib.parse
-            p = urllib.parse.quote(prompt_en[:400])
-            url = f"https://image.pollinations.ai/prompt/{p}?width=1024&height=1024&model=flux&nologo=true"
-            modelo_usado = "Pollinations Flux (free)"
-        except Exception as ep:
-            pass
-    if not url:
         raise HTTPException(500, f"Todas as APIs de imagem falharam: {'; '.join(erros)}")
 
     debitar_creditos(usuario_id, creditos, "gerar_imagem")
@@ -1836,11 +1817,7 @@ async def gerar_video(request: VideoRequest):
         estilo_ctx = ESTILOS_MAP[request.estilo]
     
     prompt_base = estilo_ctx + request.prompt if estilo_ctx else request.prompt
-    try:
-        prompt_en = await interpretar_prompt_inteligente(prompt_base, tipo=tipo_prompt)
-    except Exception as e_prompt:
-        print(f"[gerar-imagem] prompt inteligente falhou: {e_prompt} — usando prompt original")
-        prompt_en = prompt_base + ", highly detailed, 8k uhd, cinematic lighting, award winning"
+    prompt_en = prompt_base + ", highly detailed, 8k uhd, cinematic lighting, award winning"
 
     # Verificar se é Kling
     if request.modelo and "kling" in request.modelo.lower():
