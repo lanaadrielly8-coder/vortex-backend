@@ -1752,6 +1752,17 @@ async def gerar_imagem(request: ImageRequest):
             except Exception as e:
                 erros.append(f"Leonardo fallback: {e}")
 
+    # Fallback gratuito — Pollinations.ai (sem key, sempre disponível)
+    if not url:
+        try:
+            import urllib.parse
+            prompt_encoded = urllib.parse.quote(prompt_en[:500])
+            url = f"https://image.pollinations.ai/prompt/{prompt_encoded}?width=1024&height=1024&model=flux&nologo=true&seed={hash(prompt_en) % 99999}"
+            modelo_usado = "Pollinations Flux (free)"
+            print(f"[Pollinations] URL gerada: {url[:80]}")
+        except Exception as e:
+            erros.append(f"Pollinations: {e}")
+
     if not url:
         raise HTTPException(500, f"Todas as APIs de imagem falharam: {'; '.join(erros)}")
 
@@ -2387,18 +2398,38 @@ async def gerar_imagem_wavespeed(prompt: str, endpoint: str = "wavespeed-ai/flux
     if not WAVESPEED_API_KEY:
         raise HTTPException(500, "WAVESPEED_API_KEY não configurada")
     ep = endpoint or "wavespeed-ai/flux-dev"
-    # Submete o job
-    async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+    
+    # Tenta sync mode primeiro (resultado imediato)
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
         r = await client.post(
             f"https://api.wavespeed.ai/api/v3/{ep}",
             headers={"Authorization": f"Bearer {WAVESPEED_API_KEY}", "Content-Type": "application/json"},
-            json={"prompt": prompt, "width": 1024, "height": 1024, "num_images": 1, "seed": -1},
+            json={
+                "prompt": prompt,
+                "width": 1024,
+                "height": 1024,
+                "num_images": 1,
+                "seed": -1,
+                "enable_sync_mode": True,
+                "output_format": "jpeg"
+            },
         )
-        if not r.is_success: raise HTTPException(502, f"WaveSpeed imagem erro {r.status_code}: {r.text[:300]}")
+        if not r.is_success:
+            raise HTTPException(502, f"WaveSpeed imagem erro {r.status_code}: {r.text[:300]}")
         d = r.json()
-        request_id = d.get("data", {}).get("id")
-        if not request_id: raise HTTPException(502, f"WaveSpeed sem request_id: {d}")
-        print(f"[WaveSpeed] Imagem job: {request_id}")
+        print(f"[WaveSpeed] resposta: {str(d)[:200]}")
+        
+        # Modo sync — resultado já veio
+        data = d.get("data", {})
+        outputs = data.get("outputs", [])
+        if outputs:
+            return outputs[0]
+        
+        # Modo async — polling necessário
+        request_id = data.get("id")
+        if not request_id:
+            raise HTTPException(502, f"WaveSpeed sem outputs e sem request_id: {d}")
+        print(f"[WaveSpeed] Imagem job async: {request_id}")
 
     # Polling
     async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
