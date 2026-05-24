@@ -2415,27 +2415,28 @@ async def gerar_imagem_gemini(prompt: str, width: int = 1024, height: int = 1024
     if not key:
         raise HTTPException(500, "GEMINI_API_KEY não configurada")
     
+    # Tenta Imagen 3
     async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
-        r = await client.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key={key}",
-            headers={"Content-Type": "application/json"},
-            json={
-                "instances": [{"prompt": prompt}],
-                "parameters": {
-                    "sampleCount": 1,
-                    "aspectRatio": "1:1",
-                    "outputOptions": {"mimeType": "image/jpeg"},
-                }
-            }
-        )
-        if not r.is_success:
-            raise HTTPException(502, f"Gemini Imagen erro {r.status_code}: {r.text[:200]}")
-        d = r.json()
-        predictions = d.get("predictions", [])
-        if predictions and predictions[0].get("bytesBase64Encoded"):
-            img_b64 = predictions[0]["bytesBase64Encoded"]
-            return f"data:image/jpeg;base64,{img_b64}"
-        raise HTTPException(502, f"Gemini sem imagem: {d}")
+        for modelo_img in ["imagen-3.0-generate-002", "imagen-3.0-fast-generate-001"]:
+            try:
+                r = await client.post(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/{modelo_img}:predict?key={key}",
+                    headers={"Content-Type": "application/json"},
+                    json={
+                        "instances": [{"prompt": prompt}],
+                        "parameters": {"sampleCount": 1, "aspectRatio": "1:1"}
+                    }
+                )
+                if r.is_success:
+                    d = r.json()
+                    predictions = d.get("predictions", [])
+                    if predictions and predictions[0].get("bytesBase64Encoded"):
+                        img_b64 = predictions[0]["bytesBase64Encoded"]
+                        return f"data:image/jpeg;base64,{img_b64}"
+                print(f"[Gemini] {modelo_img}: {r.status_code} {r.text[:100]}")
+            except Exception as em:
+                print(f"[Gemini] {modelo_img} erro: {em}")
+        raise HTTPException(502, "Gemini Imagen não disponível")
 
 
 async def gerar_imagem_fal(prompt: str, modelo: str = "fal-ai/flux/dev", width: int = 1024, height: int = 1024) -> str:
