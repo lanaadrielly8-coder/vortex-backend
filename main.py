@@ -586,6 +586,13 @@ class PagamentoRequest(BaseModel):
 async def auth_google():
     url = google_auth_url()
     if not url:
+        try:
+            import urllib.parse
+            p = urllib.parse.quote(prompt_en[:400])
+            url = "https://image.pollinations.ai/prompt/" + p + "?width=1024&height=1024&model=flux&nologo=true"
+            modelo_usado = "Pollinations Flux (free)"
+        except: pass
+    if not url:
         raise HTTPException(500, "GOOGLE_CLIENT_ID não configurado")
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url)
@@ -1771,6 +1778,14 @@ async def gerar_imagem(request: ImageRequest):
         except Exception as e:
             erros.append(f"Pollinations: {e}")
 
+    if not url:
+        try:
+            import urllib.parse
+            p = urllib.parse.quote(prompt_en[:400])
+            url = f"https://image.pollinations.ai/prompt/{p}?width=1024&height=1024&model=flux&nologo=true"
+            modelo_usado = "Pollinations Flux (free)"
+        except Exception as ep:
+            pass
     if not url:
         raise HTTPException(500, f"Todas as APIs de imagem falharam: {'; '.join(erros)}")
 
