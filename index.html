@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Vortex AI — Lista de Espera</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06040F;--bg2:#0d0a1e;
+  --purple:#7b2fff;--purple2:#9d5cff;--purple3:#c4a0ff;
+  --cyan:#22d3ee;--pink:#f472b6;--green:#34d399;
+  --text:#f0eeff;--text2:#9b8fcc;--text3:#4a4470;
+  --fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--fb);overflow-x:hidden}
+
+/* CANVAS DE FUNDO */
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* CONTEÚDO */
+.wrap{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem;text-align:center}
+
+/* BADGE DO LANÇAMENTO */
+.launch-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(123,47,255,.12);
+  border:1px solid rgba(123,47,255,.35);
+  border-radius:100px;padding:8px 18px;
+  font-size:12px;font-weight:500;letter-spacing:.08em;
+  color:var(--purple3);margin-bottom:2.5rem;
+  animation:fadeUp .8s ease both;
+}
+.badge-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+
+/* COUNTDOWN */
+.countdown-wrap{
+  display:flex;gap:20px;justify-content:center;
+  margin-bottom:2.5rem;
+  animation:fadeUp .8s .1s ease both;
+}
+.cd-item{display:flex;flex-direction:column;align-items:center;gap:4px}
+.cd-num{
+  font-family:var(--fh);font-size:clamp(36px,8vw,64px);font-weight:800;
+  color:#fff;line-height:1;
+  text-shadow:0 0 30px rgba(123,47,255,.6);
+  min-width:80px;
+}
+.cd-label{font-size:10px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase}
+.cd-sep{font-family:var(--fh);font-size:clamp(28px,6vw,52px);font-weight:800;color:var(--purple);opacity:.5;align-self:flex-start;padding-top:4px}
+
+/* LOGO */
+.logo{
+  font-family:var(--fh);font-size:clamp(52px,14vw,100px);font-weight:800;
+  letter-spacing:-.02em;color:#fff;
+  text-shadow:0 0 60px rgba(123,47,255,.5),0 0 120px rgba(123,47,255,.2);
+  margin-bottom:.5rem;
+  animation:fadeUp .8s .2s ease both;
+}
+.logo em{font-style:normal;color:var(--purple2)}
+
+/* TAGLINE */
+.tagline{
+  font-family:var(--fh);font-size:clamp(14px,3vw,20px);
+  color:var(--text2);letter-spacing:.04em;margin-bottom:1rem;
+  animation:fadeUp .8s .3s ease both;
+}
+
+/* HEADLINE */
+.headline{
+  font-family:var(--fh);font-size:clamp(22px,5vw,42px);font-weight:700;
+  line-height:1.2;max-width:700px;margin:0 auto 1.5rem;
+  animation:fadeUp .8s .4s ease both;
+}
+.headline span{color:var(--purple2)}
+
+/* IAs LIST */
+.ias{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:8px;
+  max-width:600px;margin:0 auto 2.5rem;
+  animation:fadeUp .8s .5s ease both;
+}
+.ia-tag{
+  font-size:12px;font-weight:500;padding:5px 14px;border-radius:100px;
+  border:1px solid;letter-spacing:.04em;
+}
+.ia-tag.purple{background:rgba(123,47,255,.1);border-color:rgba(123,47,255,.3);color:var(--purple3)}
+.ia-tag.blue{background:rgba(66,133,244,.08);border-color:rgba(66,133,244,.25);color:#93c5fd}
+.ia-tag.teal{background:rgba(34,211,238,.08);border-color:rgba(34,211,238,.25);color:#67e8f9}
+.ia-tag.green{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.25);color:#6ee7b7}
+.ia-tag.pink{background:rgba(244,114,182,.08);border-color:rgba(244,114,182,.25);color:#f9a8d4}
+
+/* PLANOS */
+.plans{
+  display:flex;gap:12px;flex-wrap:wrap;justify-content:center;
+  margin-bottom:2.5rem;
+  animation:fadeUp .8s .55s ease both;
+}
+.plan{
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(123,47,255,.15);
+  border-radius:16px;padding:16px 20px;min-width:130px;
+  text-align:center;transition:all .2s;
+}
+.plan:hover{border-color:rgba(123,47,255,.4);background:rgba(123,47,255,.06);transform:translateY(-2px)}
+.plan.featured{border-color:rgba(123,47,255,.5);background:rgba(123,47,255,.08)}
+.plan-name{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.plan-price{font-family:var(--fh);font-size:22px;font-weight:800;color:#fff}
+.plan-price span{font-size:11px;color:var(--text3);font-weight:400}
+.plan-badge{font-size:9px;color:var(--green);margin-top:4px;letter-spacing:.05em}
+.plan-old{font-size:10px;color:var(--text3);text-decoration:line-through;margin-top:2px}
+
+/* FORM */
+.form-wrap{
+  width:100%;max-width:460px;margin:0 auto 2rem;
+  animation:fadeUp .8s .6s ease both;
+}
+.form-inner{
+  display:flex;gap:8px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(123,47,255,.25);
+  border-radius:14px;padding:6px 6px 6px 16px;
+}
+.form-inner:focus-within{border-color:rgba(123,47,255,.6)}
+input[type=email]{
+  flex:1;background:transparent;border:none;outline:none;
+  color:#fff;font-family:var(--fb);font-size:14px;
+  placeholder-color:var(--text3);
+}
+input[type=email]::placeholder{color:var(--text3)}
+.btn{
+  background:var(--purple);border:none;border-radius:10px;
+  color:#fff;font-family:var(--fh);font-size:13px;font-weight:700;
+  padding:10px 20px;cursor:pointer;letter-spacing:.04em;
+  transition:all .2s;white-space:nowrap;
+}
+.btn:hover{background:var(--purple2);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn.loading{opacity:.7;pointer-events:none}
+
+/* SUCCESS */
+.success{
+  display:none;
+  background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);
+  border-radius:14px;padding:16px 24px;
+  color:var(--green);font-size:14px;font-weight:500;
+  animation:fadeUp .5s ease both;
+}
+.success.show{display:block}
+
+/* VAGAS */
+.vagas{
+  font-size:12px;color:var(--text3);margin-bottom:3rem;
+  animation:fadeUp .8s .7s ease both;
+}
+.vagas span{color:var(--purple3);font-weight:600}
+
+/* FEATURES */
+.features{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:12px;max-width:800px;width:100%;margin:0 auto 3rem;
+  animation:fadeUp .8s .8s ease both;
+}
+.feat{
+  background:rgba(255,255,255,.02);border:1px solid rgba(123,47,255,.1);
+  border-radius:14px;padding:16px;text-align:left;
+}
+.feat-icon{font-size:22px;margin-bottom:8px}
+.feat-title{font-family:var(--fh);font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+.feat-desc{font-size:11px;color:var(--text3);line-height:1.5}
+
+/* DATA */
+.launch-date{
+  font-family:var(--fh);font-size:clamp(12px,2.5vw,16px);
+  color:var(--text3);letter-spacing:.08em;margin-bottom:1rem;
+  animation:fadeUp .8s .9s ease both;
+}
+.launch-date strong{color:var(--purple3)}
+
+/* FOOTER */
+footer{
+  font-size:11px;color:var(--text3);letter-spacing:.04em;
+  padding:2rem 0 1rem;
+  animation:fadeUp .8s 1s ease both;
+}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* RESPONSIVO */
+@media(max-width:480px){
+  .form-inner{flex-direction:column;padding:10px}
+  .btn{width:100%;padding:12px}
+  .cd-num{min-width:60px}
+  .countdown-wrap{gap:12px}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div class="wrap">
+
+  <!-- Badge -->
+  <div class="launch-badge">
+    <div class="badge-dot"></div>
+    LANÇAMENTO EM 15 DE JULHO DE 2026
+  </div>
+
+  <!-- Countdown -->
+  <div class="countdown-wrap">
+    <div class="cd-item"><div class="cd-num" id="cd-d">00</div><div class="cd-label">dias</div></div>
+    <div class="cd-sep">:</div>
+    <div class="cd-item"><div class="cd-num" id="cd-h">00</div><div class="cd-label">horas</div></div>
+    <div class="cd-sep">:</div>
+    <div class="cd-item"><div class="cd-num" id="cd-m">00</div><div class="cd-label">min</div></div>
+    <div class="cd-sep">:</div>
+    <div class="cd-item"><div class="cd-num" id="cd-s">00</div><div class="cd-label">seg</div></div>
+  </div>
+
+  <!-- Logo -->
+  <div class="logo">VOR<em>TEX</em></div>
+  <div class="tagline">IA BRASILEIRA — A IA QUE TEM TUDO</div>
+
+  <!-- Headline -->
+  <h1 class="headline">
+    Enquanto você usa <span>uma</span> IA…<br>
+    o Vortex usa <span>todas ao mesmo tempo.</span>
+  </h1>
+
+  <!-- IAs -->
+  <div class="ias">
+    <span class="ia-tag purple">Claude Opus 4.6</span>
+    <span class="ia-tag blue">GPT-4o</span>
+    <span class="ia-tag teal">Gemini 2.0</span>
+    <span class="ia-tag green">DeepSeek V3</span>
+    <span class="ia-tag pink">Llama 3.3 70B</span>
+    <span class="ia-tag purple">Qwen 2.5 72B</span>
+    <span class="ia-tag blue">HuggingFace FLUX</span>
+    <span class="ia-tag teal">Nano Banana Pro</span>
+    <span class="ia-tag green">ElevenLabs v3</span>
+    <span class="ia-tag pink">Kling • WAN • Veo</span>
+    <span class="ia-tag purple">+ 40 modelos</span>
+  </div>
+
+  <!-- Planos -->
+  <div class="plans">
+    <div class="plan">
+      <div class="plan-name">Free</div>
+      <div class="plan-price">R$0<span>/mês</span></div>
+      <div class="plan-badge">sempre grátis</div>
+    </div>
+    <div class="plan featured">
+      <div class="plan-name">Creator ✦</div>
+      <div class="plan-price">R$29<span>/mês</span></div>
+      <div class="plan-badge">founders price</div>
+      <div class="plan-old">depois R$49</div>
+    </div>
+    <div class="plan featured">
+      <div class="plan-name">Pro ✦</div>
+      <div class="plan-price">R$49<span>/mês</span></div>
+      <div class="plan-badge">founders price</div>
+      <div class="plan-old">depois R$97</div>
+    </div>
+    <div class="plan">
+      <div class="plan-name">Elite</div>
+      <div class="plan-price">R$97<span>/mês</span></div>
+      <div class="plan-badge">acesso total</div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="form-wrap">
+    <div class="form-inner">
+      <input type="email" id="email-input" placeholder="seu@email.com" autocomplete="email"/>
+      <button class="btn" id="submit-btn" onclick="submitEmail()">
+        Garantir vaga →
+      </button>
+    </div>
+    <div class="success" id="success-msg">
+      ✅ Você está na lista! Te avisamos no dia 15/07.
+    </div>
+  </div>
+
+  <!-- Vagas -->
+  <div class="vagas">
+    Primeiros <span>50 usuários</span> com preço de founders —
+    <span id="vagas-num">47</span> vagas restantes
+  </div>
+
+  <!-- Features -->
+  <div class="features">
+    <div class="feat">
+      <div class="feat-icon">✍️</div>
+      <div class="feat-title">Roteiro Viral</div>
+      <div class="feat-desc">Score viral, modo A/B, melhor horário de postagem — tudo automático.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🔥</div>
+      <div class="feat-title">Tendências em Tempo Real</div>
+      <div class="feat-desc">Veja o que está viral agora. Antes de todo mundo ver.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🎨</div>
+      <div class="feat-title">Imagem & Vídeo IA</div>
+      <div class="feat-desc">FLUX, Nano Banana Pro, Kling, WAN, Veo — tudo em um lugar.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🎙️</div>
+      <div class="feat-title">Voz & Música</div>
+      <div class="feat-desc">Clone sua voz com ElevenLabs v3. Gere músicas do zero.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">📊</div>
+      <div class="feat-title">Análise de Perfil</div>
+      <div class="feat-desc">Analisa seu Instagram, TikTok e YouTube. Te diz o que mudar.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🧠</div>
+      <div class="feat-title">IA que Aprende</div>
+      <div class="feat-desc">O Vortex aprende com você. Cada roteiro aprovado o torna mais inteligente.</div>
+    </div>
+  </div>
+
+  <!-- Data -->
+  <div class="launch-date">
+    Lançamento oficial: <strong>15 de julho de 2026</strong>
+  </div>
+
+  <footer>
+    VORTEX AI © 2026 — IA Brasileira
+  </footer>
+
+</div>
+
+<script>
+// Canvas de partículas
+const canvas=document.getElementById('bg-canvas');
+const ctx=canvas.getContext('2d');
+let W,H,stars=[],shoots=[];
+
+function resize(){
+  W=canvas.width=window.innerWidth;
+  H=canvas.height=window.innerHeight;
+}
+resize();
+window.addEventListener('resize',resize);
+
+for(let i=0;i<200;i++){
+  stars.push({
+    x:Math.random()*1920,y:Math.random()*1080,
+    r:Math.random()*1.5+.2,
+    a:Math.random()*.8+.2,
+    phase:Math.random()*Math.PI*2,
+    speed:Math.random()*.5+.2,
+    color:Math.random()<.3?'#c4a0ff':Math.random()<.2?'#22d3ee':Math.random()<.1?'#f472b6':'#fff'
+  });
+}
+
+setInterval(()=>{
+  shoots.push({
+    x:Math.random()*W*.8,y:Math.random()*H*.4,
+    len:Math.random()*120+60,
+    angle:Math.random()*.4+.2,
+    speed:Math.random()*12+8,
+    life:1,decay:Math.random()*.025+.015
+  });
+},3000);
+
+let t=0;
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  t+=.012;
+
+  // Nebulosa roxa
+  const g1=ctx.createRadialGradient(W*.3,H*.4,0,W*.3,H*.4,W*.5);
+  g1.addColorStop(0,'rgba(60,15,120,.18)');
+  g1.addColorStop(1,'transparent');
+  ctx.fillStyle=g1;ctx.fillRect(0,0,W,H);
+
+  const g2=ctx.createRadialGradient(W*.8,H*.7,0,W*.8,H*.7,W*.4);
+  g2.addColorStop(0,'rgba(20,5,60,.12)');
+  g2.addColorStop(1,'transparent');
+  ctx.fillStyle=g2;ctx.fillRect(0,0,W,H);
+
+  // Estrelas
+  stars.forEach(s=>{
+    const a=s.a*(.4+.6*Math.sin(t*s.speed+s.phase));
+    ctx.beginPath();ctx.arc(s.x%W,s.y%H,s.r,0,Math.PI*2);
+    ctx.fillStyle=s.color;ctx.globalAlpha=a*.6;ctx.fill();
+  });
+  ctx.globalAlpha=1;
+
+  // Shooting stars
+  for(let i=shoots.length-1;i>=0;i--){
+    const s=shoots[i];
+    const ex=s.x+Math.cos(s.angle)*s.len,ey=s.y+Math.sin(s.angle)*s.len;
+    const g=ctx.createLinearGradient(s.x,s.y,ex,ey);
+    g.addColorStop(0,'rgba(255,255,255,0)');
+    g.addColorStop(.5,`rgba(180,100,255,${s.life*.6})`);
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(ex,ey);
+    ctx.strokeStyle=g;ctx.lineWidth=1.2;ctx.stroke();
+    s.x+=Math.cos(s.angle)*s.speed;s.y+=Math.sin(s.angle)*s.speed;
+    s.life-=s.decay;
+    if(s.life<=0)shoots.splice(i,1);
+  }
+
+  requestAnimationFrame(draw);
+}
+draw();
+
+// Countdown
+const LAUNCH=new Date('2026-07-15T00:00:00-03:00');
+function updateCountdown(){
+  const diff=LAUNCH-new Date();
+  if(diff<=0){
+    document.getElementById('cd-d').textContent='00';
+    document.getElementById('cd-h').textContent='00';
+    document.getElementById('cd-m').textContent='00';
+    document.getElementById('cd-s').textContent='00';
+    return;
+  }
+  const d=Math.floor(diff/86400000);
+  const h=Math.floor((diff%86400000)/3600000);
+  const m=Math.floor((diff%3600000)/60000);
+  const s=Math.floor((diff%60000)/1000);
+  document.getElementById('cd-d').textContent=String(d).padStart(2,'0');
+  document.getElementById('cd-h').textContent=String(h).padStart(2,'0');
+  document.getElementById('cd-m').textContent=String(m).padStart(2,'0');
+  document.getElementById('cd-s').textContent=String(s).padStart(2,'0');
+}
+updateCountdown();
+setInterval(updateCountdown,1000);
+
+// Vagas — diminui a cada visita usando localStorage
+let vagas = 47;
+try {
+  const stored = parseInt(localStorage.getItem('vortex_vagas'));
+  if (stored && stored > 1) {
+    vagas = stored;
+  } else if (!stored) {
+    // Primeira visita — diminui aleatório entre 1-3
+    vagas = 47 - Math.floor(Math.random() * 3);
+    localStorage.setItem('vortex_vagas', vagas);
+  } else {
+    vagas = stored;
+  }
+  // A cada visita diminui 1 com 60% de chance
+  if (Math.random() < 0.6 && vagas > 5) {
+    vagas--;
+    localStorage.setItem('vortex_vagas', vagas);
+  }
+} catch(e) {}
+document.getElementById('vagas-num').textContent = vagas;
+
+// Animação de urgência quando vagas < 15
+if (vagas < 15) {
+  document.getElementById('vagas-num').style.color = '#f472b6';
+  document.getElementById('vagas-num').style.animation = 'pulse 1s ease infinite';
+}
+
+function submitEmail(){
+  const email=document.getElementById('email-input').value.trim();
+  if(!email||!email.includes('@'))return;
+  const btn=document.getElementById('submit-btn');
+  btn.textContent='Entrando...';btn.classList.add('loading');
+  setTimeout(()=>{
+    document.getElementById('success-msg').classList.add('show');
+    document.querySelector('.form-inner').style.display='none';
+    if(vagas>1){vagas--;document.getElementById('vagas-num').textContent=vagas;}
+    btn.classList.remove('loading');
+  },1200);
+}
+document.getElementById('email-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter')submitEmail();
+});
+</script>
+</body>
+</html>
