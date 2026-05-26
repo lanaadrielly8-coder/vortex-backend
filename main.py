@@ -91,7 +91,27 @@ SHOTSTACK_PROD      = os.getenv("SHOTSTACK_PROD_KEY", "")
 SHOTSTACK_KEY       = SHOTSTACK_SANDBOX or SHOTSTACK_PROD
 SHOTSTACK_ENV       = "stage" if SHOTSTACK_SANDBOX else "v1"
 WAVESPEED_API_KEY   = os.getenv("WAVESPEED_API_KEY", "")
-VORTEX_URL      = os.getenv("VORTEX_URL", "http://localhost:5173")
+VORTEX_URL          = os.getenv("VORTEX_URL", "http://localhost:5173")
+
+# ── NOVAS KEYS ──────────────────────────────────────────
+AIML_API_KEY        = os.getenv("AIML_API_KEY", "")          # chat Claude/GPT/Gemini premium
+SUPABASE_URL        = os.getenv("SUPABASE_URL", "")          # banco de dados real
+SUPABASE_KEY        = os.getenv("SUPABASE_KEY", "")          # banco de dados real
+OPENROUTER_KEY      = os.getenv("OPENROUTER_API_KEY", "")    # 200+ modelos fallback
+
+# Status das keys (mostra no /status)
+_keys_status = {
+    "supabase":    bool(SUPABASE_URL and SUPABASE_KEY),
+    "aiml":        bool(AIML_API_KEY),
+    "anthropic":   bool(ANTHROPIC_API_KEY),
+    "openrouter":  bool(OPENROUTER_KEY),
+    "fal":         bool(os.getenv("FAL_API_KEY", "")),
+    "elevenlabs":  bool(os.getenv("ELEVENLABS_API_KEY", "")),
+    "tavily":      bool(TAVILY_API_KEY),
+    "mercadopago": bool(MP_ACCESS_TOKEN),
+}
+print(f"[VORTEX] Keys ativas: {[k for k,v in _keys_status.items() if v]}")
+print(f"[VORTEX] Keys faltando: {[k for k,v in _keys_status.items() if not v]}")
 
 app = FastAPI(title="Vortex AI Backend", version="6.0.0")
 app.add_middleware(
@@ -793,27 +813,59 @@ async def chat(data: ChatRequest):
 
     anthropic_ok = bool(os.getenv("ANTHROPIC_API_KEY", ANTHROPIC_API_KEY))
     
+    aiml_ok     = bool(os.getenv("AIML_API_KEY", AIML_API_KEY))
+    
     if plano in ["elite_lifetime", "elite_mensal", "elite_anual"]:
-        config["provedor"] = "claude_sonnet" if anthropic_ok else "gemini"
+        # Elite — melhor modelo disponível: Claude > AIML(GPT-4o) > Gemini
+        if anthropic_ok:
+            config["provedor"] = "claude_sonnet"
+            config["modelo_nome"] = "claude-sonnet-4-5"
+        elif aiml_ok:
+            config["provedor"] = "aiml"
+            config["modelo_nome"] = "gpt-4o"
+        else:
+            config["provedor"] = "gemini"
+            config["modelo_nome"] = "gemini-2.0-flash"
         config["max_tokens"] = 4000
-        print(f"[CLOUDO] ELITE — {'Claude Sonnet' if anthropic_ok else 'Gemini'} / 4000 tokens 🎬")
+        print(f"[CHAT] ELITE — {config['modelo_nome']} / 4000 tokens 🎬")
+
     elif plano in ["ultra_mensal", "ultra_anual", "pro_mensal", "pro_anual"]:
-        config["provedor"] = "claude_haiku" if anthropic_ok else "gemini"
+        # Pro — Claude Haiku > AIML(GPT-4o-mini) > Gemini
+        if anthropic_ok:
+            config["provedor"] = "claude_haiku"
+            config["modelo_nome"] = "claude-haiku-4-5"
+        elif aiml_ok:
+            config["provedor"] = "aiml"
+            config["modelo_nome"] = "gpt-4o-mini"
+        else:
+            config["provedor"] = "gemini"
+            config["modelo_nome"] = "gemini-2.0-flash"
         config["max_tokens"] = 3000
-        print(f"[CLOUDO] PRO — {'Claude Haiku' if anthropic_ok else 'Gemini'} / 3000 tokens")
+        print(f"[CHAT] PRO — {config['modelo_nome']} / 3000 tokens")
+
     elif plano in ["creator_mensal", "creator_anual"]:
-        config["provedor"] = "gemini"
+        # Creator — AIML(Gemini Pro) > Gemini
+        if aiml_ok:
+            config["provedor"] = "aiml"
+            config["modelo_nome"] = "gemini-pro"
+        else:
+            config["provedor"] = "gemini"
+            config["modelo_nome"] = "gemini-2.0-flash"
         config["max_tokens"] = 2500
-        print(f"[CLOUDO] CREATOR — Gemini / 2500 tokens")
+        print(f"[CHAT] CREATOR — {config['modelo_nome']} / 2500 tokens")
+
     elif plano in ["starter_mensal", "starter_anual"]:
         config["provedor"] = "gemini"
+        config["modelo_nome"] = "gemini-2.0-flash"
         config["max_tokens"] = 2000
-        print(f"[CLOUDO] STARTER — Gemini / 2000 tokens")
+        print(f"[CHAT] STARTER — Gemini / 2000 tokens")
+
     else:
         # Free — Gemini estável
         config["provedor"] = "gemini"
+        config["modelo_nome"] = "gemini-2.0-flash"
         config["max_tokens"] = 1500
-        print(f"[CLOUDO] FREE — Gemini / 1500 tokens")
+        print(f"[CHAT] FREE — Gemini / 1500 tokens")
 
     msgs = (data.historico or [])[-10:]
     
@@ -1002,7 +1054,23 @@ MÉDIA: X/10 — [VIRAL/POTENCIAL/RETRABALHAR]"""
     resposta, provedor = None, "desconhecido"
     try:
         # Usar cascata dedicada de chat (DeepSeek V3 → Qwen3 → Llama → Gemini)
-        if config["provedor"] == "openrouter_chat":
+        if config["provedor"] == "aiml":
+            # AIML API — Claude, GPT-4o, Gemini Pro via uma key
+            try:
+                from providers import chamar_aiml
+                modelo_aiml = config.get("modelo_nome", "gpt-4o")
+                msgs_aiml = [{"role": m.get("role","user"), "content": m.get("content", m.get("text",""))} for m in msgs]
+                resposta = await chamar_aiml(msgs_aiml, system=system, modelo=modelo_aiml, max_tokens=config["max_tokens"])
+                provedor = f"aiml/{modelo_aiml}"
+                print(f"[CHAT] ✅ AIML respondeu com {modelo_aiml}")
+            except Exception as e_aiml:
+                print(f"[CHAT] AIML falhou ({e_aiml}) — fallback Gemini")
+                resposta, provedor = await gerar_texto(
+                    messages=msgs, system=system,
+                    max_tokens=config["max_tokens"],
+                    provedor_preferido="gemini",
+                )
+        elif config["provedor"] == "openrouter_chat":
             resposta, provedor = await gerar_texto_chat(
                 messages=msgs, system=system,
                 max_tokens=config["max_tokens"],
@@ -1144,141 +1212,214 @@ INSTRUÇÃO EXTRA: Use os dados reais acima. Seja hiper-específico — nomes, d
 @app.post("/gerar-roteiro")
 async def gerar_roteiro(data: RoteiroIn):
     usuario_id = "default"
-    creditos_map = {"curto":1,"medio":2,"longo":3,"completo":5}
-    creditos_necessarios = creditos_map.get(data.formato, 2)
-    if data.modo in ["serie","ab","completo"]: creditos_necessarios *= 2
+    creditos_necessarios = {"curto":1,"medio":2,"longo":3,"completo":5}.get(data.formato, 2)
+    if verificar_saldo(usuario_id, creditos_necessarios) < creditos_necessarios:
+        raise HTTPException(402, "Créditos insuficientes.")
 
-    saldo = verificar_saldo(usuario_id, creditos_necessarios)
-    if saldo < creditos_necessarios:
-        raise HTTPException(402, f"Créditos insuficientes. Precisa de {creditos_necessarios}.")
+    _perfil = carregar_perfil(data.canal_id or "default") or {}
+    plataforma = _perfil.get("plataformas", ["TikTok"])[0] if _perfil.get("plataformas") else "TikTok"
+    nicho      = data.nicho or _perfil.get("nicho", "conteúdo viral")
+    tom        = _perfil.get("tom_de_voz", "direto e impactante")
+    publico    = _perfil.get("publico_alvo", "criadores de conteúdo")
+    nome_canal = _perfil.get("nome_canal", "")
+    contexto   = montar_contexto_criador(data.canal_id or "default")
 
-    system = montar_system_vortex(usar_cloudo=True, canal_id=data.canal_id or "default")
-    MAX_TOKENS = {"curto":800,"medio":1500,"longo":2500,"completo":3000}.get(data.formato, 1500)
-    provedor = "gemini" if data.formato in ["longo","completo"] or data.modo in ["serie","completo"] else "groq"
-    contexto = montar_contexto_criador(data.canal_id or "default")
-    plataforma = _perfil.get("plataformas",["TikTok"])[0] if _perfil.get("plataformas") else "TikTok"
+    MAX_TOKENS = {"curto":1200,"medio":2000,"longo":3000,"completo":4000}.get(data.formato, 2000)
 
-    # Tavily: busca fatos reais sobre o tema
+    # Buscar fatos reais e tendências em paralelo
     fatos_reais = ""
-    if os.getenv("TAVILY_API_KEY", TAVILY_API_KEY):
-        fatos_reais = await buscar_tavily(data.tema + " caso real Brasil")
-        if fatos_reais:
-            print(f"[Tavily] Fatos reais para roteiro: {len(fatos_reais)} chars")
+    tendencias_reais = ""
+    if TAVILY_API_KEY:
+        try:
+            import asyncio
+            fatos_task    = buscar_tavily(f"{data.tema} caso real Brasil viral")
+            tends_task    = buscar_tavily(f"tendências {nicho} {plataforma} viral 2026")
+            fatos_reais, tendencias_reais = await asyncio.gather(fatos_task, tends_task, return_exceptions=True)
+            if isinstance(fatos_reais, Exception):    fatos_reais = ""
+            if isinstance(tendencias_reais, Exception): tendencias_reais = ""
+        except:
+            pass
 
-    # Monta prompt baseado no modo
-    if data.modo == "diretor":
-        prompt = f"""Crie um roteiro DIRETOR COMPLETO para: {data.tema}
-Formato: {data.formato} | Plataforma: {plataforma}
-{f"Criador: {contexto}" if contexto else ""}
+    system = """Você é o VORTEX SCRIPT ENGINE — o melhor roteirista de conteúdo viral do Brasil.
+Você já criou roteiros que geraram mais de 50 milhões de views no TikTok e Instagram.
 
-Entregue OBRIGATORIAMENTE:
-- Roteiro segundo a segundo (com timestamps [00:00])
-- Direção de câmera para cada cena
-- Emoção do espectador em cada momento
-- Tipo de corte/transição
-- Efeito sonoro exato
-- Score viral nas 5 dimensões ao final"""
+FILOSOFIA:
+- Hook nos primeiros 2 segundos = vida ou morte do vídeo
+- Especificidade vende — "homem de 34 anos em São Paulo" > "uma pessoa"
+- Emoção > informação sempre
+- Cada segundo deve ter uma função: prender, revelar, ou chocar
+- O final deve ser impossível de não compartilhar
 
+REGRAS ABSOLUTAS:
+- NUNCA começa com pergunta
+- NUNCA usa "Olá", "Hoje vamos falar" ou "Você sabia que"
+- NUNCA entrega roteiro com score < 8/10 — reescreve internamente
+- SEMPRE entrega falas 100% completas — zero "[falar sobre X]"
+- SEMPRE em português brasileiro natural e fluido
+- SEMPRE com score viral real ao final"""
+
+    # Contexto do criador
+    if contexto:
+        system += "\n\nPERFIL DO CRIADOR:\n" + contexto + "\nPersonalize tudo ao perfil acima."
+
+
+
+
+
+    # ── MODO NORMAL — roteiro viral padrão ──────────────────────────
+    if data.modo in ["normal", "viral", ""]:
+        duracao = {"curto":"30-45s","medio":"60s","longo":"2-3min","completo":"3-5min"}.get(data.formato,"60s")
+        
+        prompt = f"""Crie um roteiro viral PROFISSIONAL de {duracao} para {plataforma}.
+
+BRIEFING:
+• Tema: {data.tema}
+• Nicho: {nicho}
+• Tom: {tom}
+• Público: {publico}
+• Plataforma: {plataforma}
+{f"• Canal: {nome_canal}" if nome_canal else ""}
+{f"• Tendências reais do nicho:{chr(10)}{tendencias_reais[:400]}" if tendencias_reais else ""}
+{f"• Fatos reais pesquisados:{chr(10)}{fatos_reais[:500]}" if fatos_reais else ""}
+
+ENTREGUE EXATAMENTE NESTE FORMATO:
+
+╔══════════════════════════════════════╗
+║  🎬 ROTEIRO — {data.tema}
+╚══════════════════════════════════════╝
+
+⚡ HOOK (0-3s):
+[Frase de abertura que PARA o scroll — afirmação chocante, número impossível ou revelação]
+
+🔥 DESENVOLVIMENTO:
+[Roteiro completo com todas as falas, cenas e virada inesperada]
+
+💥 CLÍMAX + CTA:
+[Final que força compartilhamento, comentário ou salvar]
+
+🎵 PRODUÇÃO:
+• Música: [gênero + segundo do beat drop]
+• Thumbnail: [descrição visual cinematográfica]
+• Legenda: [texto completo com emojis]
+• Hashtags: #[15 hashtags estratégicas separadas]
+
+📊 SCORE VIRAL:
+• Hook: X/10 | Retenção: X/10 | Emoção: X/10 | Shares: X/10 | Comentários: X/10
+• MÉDIA: X/10
+• POTENCIAL: [estimativa de views]
+• MELHOR HORÁRIO PARA POSTAR: [dia da semana, hora]"""
+
+    # ── MODO DIRETOR — segundo a segundo ──────────────────────────
+    elif data.modo == "diretor":
+        prompt = f"""Crie um roteiro DIRETOR COMPLETO — frame por frame — para: {data.tema}
+
+Plataforma: {plataforma} | Nicho: {nicho}
+{f"Fatos reais:{chr(10)}{fatos_reais[:600]}" if fatos_reais else ""}
+
+ENTREGUE:
+[00:00-00:03] HOOK:
+• CÂMERA: [ângulo exato + movimento]
+• CENA: [o que aparece na tela]
+• FALA: "[texto completo do narrador]"
+• EMOÇÃO DO ESPECTADOR: [o que sente]
+• SOM: [música + efeito sonoro]
+
+[Continue para cada cena até o final]
+
+TRANSIÇÕES: [tipo de corte entre cada cena]
+EFEITOS: [filtros, texto na tela, emojis]
+
+📊 SCORE: Hook X/10 | Retenção X/10 | Emoção X/10 | Shares X/10 | Comentário X/10 | MÉDIA: X/10"""
+
+    # ── MODO SÉRIE — 3 episódios ──────────────────────────────────
     elif data.modo == "serie":
-        prompt = f"""Crie uma SÉRIE de 3 episódios sobre: {data.tema}
-Plataforma: {plataforma}
-{f"Criador: {contexto}" if contexto else ""}
+        prompt = f"""Crie uma SÉRIE VIRAL de 3 episódios sobre: {data.tema}
+Plataforma: {plataforma} | Nicho: {nicho}
 
-Para cada episódio entregue:
-- Hook individual impossível de ignorar
-- Roteiro completo
-- Como esse episódio conecta com o próximo
-- Cliffhanger que obriga a ver o próximo
+Para cada episódio:
+━━ EPISÓDIO [N] ━━
+• Hook individual: [frase que funciona SOZINHA]
+• Roteiro completo: [todas as falas]
+• Cliffhanger: [por que o espectador VÁ ver o próximo]
+• Hashtag da série: #[nome da série]
+• Score: X/10
 
-Os 3 episódios devem formar uma narrativa que vicia o espectador no canal inteiro."""
+Faça os 3 episódios completos. Cada um deve funcionar sozinho E criar desejo pelo próximo."""
 
+    # ── MODO A/B — 2 versões ─────────────────────────────────────
     elif data.modo == "ab":
-        prompt = f"""Crie 2 VERSÕES COMPLETAMENTE DIFERENTES do mesmo roteiro para: {data.tema}
-Plataforma: {plataforma}
-{f"Criador: {contexto}" if contexto else ""}
+        prompt = f"""Crie 2 VERSÕES do mesmo roteiro sobre: {data.tema}
+Plataforma: {plataforma} | Nicho: {nicho}
 
-VERSÃO A: Abordagem emocional/drama
-VERSÃO B: Abordagem curiosidade/mistério
+VERSÃO A — Hook emocional (apela para sentimento):
+[Roteiro completo]
+Score A: X/10
 
-Para cada versão: hook, desenvolvimento, virada, CTA invisível.
-Ao final, analise qual tem maior potencial viral e por quê."""
+VERSÃO B — Hook chocante (apela para curiosidade):
+[Roteiro completo]  
+Score B: X/10
 
-    elif data.modo == "completo":
-        prompt = f"""Crie o PACOTE COMPLETO de conteúdo para: {data.tema}
-Formato: {data.formato} | Plataforma: {plataforma}
-{f"Criador: {contexto}" if contexto else ""}
+VEREDICTO: Qual versão vai melhor e por quê em 2 linhas."""
 
-Entregue TUDO:
-1. 3 opções de título viral
-2. Roteiro segundo a segundo com direção
-3. Direção completa (câmera, cena, emoção, edição)
-4. Trilha sonora (música + momentos exatos)
-5. Prompts IA para cada cena principal
-6. Legenda pronta com emojis
-7. 15 hashtags estratégicas (5 grandes + 5 nicho + 5 tendência)
-8. CTA invisível específico
-9. Score viral nas 5 dimensões
-10. Preview do próximo episódio"""
+    # ── MODO FACELESS — sem aparecer ─────────────────────────────
+    elif data.modo == "faceless":
+        prompt = f"""Crie um roteiro FACELESS COMPLETO — sem mostrar rosto — sobre: {data.tema}
+Plataforma: {plataforma} | Nicho: {nicho}
+
+ESTRUTURA FACELESS:
+• Narração em off: [texto completo para narrar]
+• Imagens sugeridas: [o que mostrar em cada trecho]
+• Texto na tela: [frases que aparecem sobrepostas]
+• Música: [gênero e energia]
+• Prompt de imagem IA: [prompt para gerar a thumbnail]
+
+Score: X/10 | Dificuldade de produção: [fácil/médio/difícil]"""
+
+    # ── MODO ANÚNCIO — conversão ──────────────────────────────────
+    elif data.modo == "anuncio":
+        prompt = f"""Crie um roteiro de ANÚNCIO que converte sobre: {data.tema}
+Plataforma: {plataforma} | Nicho: {nicho}
+
+ESTRUTURA: Hook (3s) → Problema (10s) → Solução (20s) → Prova (15s) → CTA (5s)
+
+[Roteiro completo com todas as falas]
+
+• Gatilhos de conversão usados: [lista]
+• CTA exato: [a frase exata para o call-to-action]
+• Taxa de conversão esperada: [estimativa]"""
 
     else:
-        # Buscar tendências reais do nicho antes de gerar
-        tendencias_reais = ""
-        if TAVILY_API_KEY:
-            try:
-                tendencias_reais = await buscar_tavily(f"tendências virais {data.nicho or data.tema} TikTok 2026 Brasil")
-            except:
-                pass
+        # Fallback — modo normal
+        prompt = f"Crie um roteiro viral profissional sobre: {data.tema} para {plataforma}. Nicho: {nicho}. Entregue hook, desenvolvimento, CTA e score viral."
 
-        prompt = f"""Crie um roteiro viral PROFISSIONAL de 60 segundos para {plataforma}.
+    # Injetar fatos reais no prompt se disponível e não foi usado ainda
+    if fatos_reais and "fatos reais" not in prompt.lower()[:100]:
+        prompt = "FATOS REAIS PESQUISADOS (use como base):\n" + fatos_reais[:800] + "\n\n---\n" + prompt
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-BRIEFING DO ROTEIRO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TEMA: {data.tema}
-FORMATO: {data.formato}
-PLATAFORMA: {plataforma}
-NICHO: {data.nicho or "conteúdo viral"}
-{f"PERFIL DO CRIADOR: {contexto}" if contexto else ""}
-{f"TENDÊNCIAS REAIS DO NICHO:{chr(10)}{tendencias_reais[:600]}" if tendencias_reais else ""}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-DIRETRIZES CRIATIVAS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-1. PESQUISA: Busque mentalmente casos reais, crimes documentados, experimentos ou fatos verificáveis sobre "{data.tema}"
-2. ESPECIFICIDADE: Use nomes, datas, lugares e números reais ou inventados com precisão cirúrgica
-3. TÉCNICA: Escolha pelo menos UMA: POV imersivo / Revelação progressiva / Depoimento em 1ª pessoa / Fato chocante + ficção
-4. HOOK: Afirmação perturbadora nos primeiros 2 segundos — NUNCA começa com pergunta
-5. VIRADA: ATO 3 deve ser IMPOSSÍVEL de prever — se der para adivinhar, reescreve
-6. FINAL: Último segundo força comentário, compartilhamento ou próximo episódio
-7. FALAS: Todas as falas do narrador devem ser REAIS e completas — sem "[falar sobre X]"
-8. SCORE: Só entrega se a média for ≥ 8/10 — reescreve se for menor
 
-Siga EXATAMENTE o formato do manual."""
-    
-    # Injeta fatos reais se Tavily encontrou algo
-    if fatos_reais:
-        prompt = f"""FATOS REAIS PESQUISADOS:
-{fatos_reais[:1000]}
 
----
-{prompt}
-
-Use os fatos reais acima. Seja específico — nomes reais, datas reais, locais reais."""
-
-    # Usa cascata dedicada para roteiro — DeepSeek V3 > Qwen3 235b > Llama 70b > DeepSeek R1 > Gemini
-    roteiro, modelo = await gerar_texto_roteiro(
-        [{"role":"user","content":prompt}], system=system,
+    # Cascata de modelos — DeepSeek > Groq > Gemini
+    roteiro_texto, modelo_usado = await gerar_texto_roteiro(
+        [{"role": "user", "content": prompt}],
+        system=system,
         max_tokens=MAX_TOKENS,
     )
+
     debitar_creditos(usuario_id, creditos_necessarios, f"roteiro_{data.formato}_{data.modo}")
-    return {"ok":True,"roteiro":roteiro,"tema":data.tema,"formato":data.formato,
-            "modo":data.modo,"modelo":modelo,"cloudo_ativo":True,"creditos_debitados":creditos_necessarios}
 
-
-# ══════════════════════════════════════════════════════════════
-# ROTA — SCORE VIRAL
-# ══════════════════════════════════════════════════════════════
+    return {
+        "ok": True,
+        "roteiro": roteiro_texto,
+        "tema": data.tema,
+        "formato": data.formato,
+        "modo": data.modo,
+        "modelo": modelo_usado,
+        "creditos_debitados": creditos_necessarios,
+        "plataforma": plataforma,
+        "nicho": nicho,
+    }
 
 @app.post("/score-viral")
 async def score_viral(data: ScoreRequest):
