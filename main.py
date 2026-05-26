@@ -137,6 +137,61 @@ _perfil: dict = carregar_perfil()
 _dna_criador: dict = carregar_dna()
 _canais: dict = carregar_canais()
 print(f"[VORTEX] Perfil carregado: {_perfil.get('nicho','nao configurado')}")
+# Sistema de limites — persiste em arquivo JSON no disco do Render
+# Resiste a reinicializações do servidor
+import json as _json_limite
+_LIMITE_FILE = "/tmp/vortex_limites.json"
+
+def _carregar_limites() -> dict:
+    try:
+        with open(_LIMITE_FILE, "r") as f:
+            return _json_limite.load(f)
+    except:
+        return {}
+
+def _salvar_limites(data: dict):
+    try:
+        with open(_LIMITE_FILE, "w") as f:
+            _json_limite.dump(data, f)
+    except Exception as e:
+        print(f"[LIMITE] Erro ao salvar: {e}")
+
+# Sistema de limites persistente — resiste a reinicializações
+import json as _json_limite
+_LIMITE_FILE = "/tmp/vortex_limites.json"
+
+def _carregar_limites() -> dict:
+    try:
+        with open(_LIMITE_FILE, "r") as f:
+            return _json_limite.load(f)
+    except:
+        return {}
+
+def _salvar_limites(data: dict):
+    try:
+        with open(_LIMITE_FILE, "w") as f:
+            _json_limite.dump(data, f)
+    except Exception as e:
+        print(f"[LIMITE] Erro ao salvar: {e}")
+
+# Sistema de limites persistente — resiste a reinicializações
+import json as _json_limite
+_LIMITE_FILE = "/tmp/vortex_limites.json"
+
+def _carregar_limites() -> dict:
+    try:
+        with open(_LIMITE_FILE, "r") as f:
+            return _json_limite.load(f)
+    except:
+        return {}
+
+def _salvar_limites(data: dict):
+    try:
+        with open(_LIMITE_FILE, "w") as f:
+            _json_limite.dump(data, f)
+    except Exception as e:
+        print(f"[LIMITE] Erro ao salvar: {e}")
+
 _limite = {"data": str(date.today()), "usado": 0, "limite": 100}
 _feedbacks: list = []
 
@@ -477,12 +532,65 @@ MELHORES_HORARIOS = {
 # UTILITÁRIOS
 # ══════════════════════════════════════════════════════════════
 
-def checar_limite():
+def checar_limite(usuario_id: str = "default") -> dict:
+    """
+    Verifica limite diário por usuário, persistindo em arquivo.
+    Free: 10 chats/dia, 3 roteiros/dia — reseta todo dia à meia noite.
+    Pagos: ilimitado (limitado apenas por créditos).
+    """
+    from creditos import get_usuario
     hoje = str(date.today())
-    if _limite["data"] != hoje:
-        _limite["data"] = hoje
-        _limite["usado"] = 0
-    return _limite
+    
+    # Carregar limites do arquivo (persiste entre reinicializações)
+    limites_arquivo = _carregar_limites()
+    dados_user = limites_arquivo.get(usuario_id, {})
+    
+    # Resetar se mudou o dia
+    if dados_user.get("data") != hoje:
+        dados_user = {"data": hoje, "chat": 0, "roteiro": 0}
+    
+    # Atualizar memória local
+    _limite["data"]          = hoje
+    _limite["usado"]         = dados_user.get("chat", 0)
+    _limite["roteiros_hoje"] = dados_user.get("roteiro", 0)
+    
+    # Plano do usuário
+    user_data   = get_usuario(usuario_id)
+    plano       = user_data.get("plano", "free")
+    
+    limites_por_plano = {
+        "free":           {"chat": 10,  "roteiro": 3},
+        "starter":        {"chat": 999, "roteiro": 999},
+        "creator":        {"chat": 999, "roteiro": 999},
+        "pro":            {"chat": 999, "roteiro": 999},
+        "elite":          {"chat": 999, "roteiro": 999},
+        "elite_lifetime": {"chat": 999, "roteiro": 999},
+    }
+    limite_plano = limites_por_plano.get(plano, {"chat": 10, "roteiro": 3})
+    
+    return {
+        "usado":            dados_user.get("chat", 0),
+        "limite":           limite_plano["chat"],
+        "roteiros_hoje":    dados_user.get("roteiro", 0),
+        "limite_roteiros":  limite_plano["roteiro"],
+        "plano":            plano,
+        "is_free":          plano == "free",
+        "_dados_user":      dados_user,
+        "_limites_arquivo": limites_arquivo,
+        "_usuario_id":      usuario_id,
+    }
+
+def incrementar_limite(usuario_id: str, tipo: str):
+    """Incrementa contador de uso e persiste no arquivo."""
+    hoje = str(date.today())
+    limites_arquivo = _carregar_limites()
+    dados_user = limites_arquivo.get(usuario_id, {"data": hoje, "chat": 0, "roteiro": 0})
+    if dados_user.get("data") != hoje:
+        dados_user = {"data": hoje, "chat": 0, "roteiro": 0}
+    dados_user[tipo] = dados_user.get(tipo, 0) + 1
+    limites_arquivo[usuario_id] = dados_user
+    _salvar_limites(limites_arquivo)
+    print(f"[LIMITE] {usuario_id} → {tipo}: {dados_user[tipo]}/dia")
 
 def formatar_numero(n: int) -> str:
     if n >= 1_000_000: return f"{round(n/1_000_000,1)}M"
@@ -795,9 +903,11 @@ async def onboarding(data: OnboardingIn):
 
 @app.post("/chat")
 async def chat(data: ChatRequest):
-    lim = checar_limite()
+    lim = checar_limite(usuario_id)
     if lim["usado"] >= lim["limite"]:
-        raise HTTPException(429, "Limite diário atingido.")
+        msg_limite = "Limite de 10 chats/dia do plano Free atingido. Faça upgrade para chats ilimitados!" if lim["is_free"] else "Limite diário atingido."
+        raise HTTPException(429, msg_limite)
+    _limite["usado"] = _limite.get("usado", 0) + 1
     usuario_id = "default"
     saldo = verificar_saldo(usuario_id, 1)
     if saldo < 1:
@@ -1101,6 +1211,7 @@ MÉDIA: X/10 — [VIRAL/POTENCIAL/RETRABALHAR]"""
             raise HTTPException(500, "Serviço temporariamente indisponível. Tente novamente.")
     debitar_creditos(usuario_id, 1, "chat")
     incrementar_limite_diario(usuario_id, "chat")
+    incrementar_limite(usuario_id, "chat")
     lim["usado"] += 1
 
     # Adiciona nota de upgrade para usuários Free
@@ -1222,6 +1333,15 @@ async def gerar_roteiro(data: RoteiroIn):
     creditos_necessarios = {"curto":1,"medio":2,"longo":3,"completo":5}.get(data.formato, 2)
     if verificar_saldo(usuario_id, creditos_necessarios) < creditos_necessarios:
         raise HTTPException(402, "Créditos insuficientes.")
+    
+    # Verificar limite de roteiros do plano free
+    lim = checar_limite(usuario_id)
+    if lim["is_free"] and lim["roteiros_hoje"] >= lim["limite_roteiros"]:
+        raise HTTPException(429, f"Limite de {lim['limite_roteiros']} roteiros/dia atingido no plano Free. Faça upgrade para roteiros ilimitados!")
+    
+    # Incrementar contador de roteiros — persiste no arquivo
+    incrementar_limite(usuario_id, "roteiro")
+    _limite["roteiros_hoje"] = _limite.get("roteiros_hoje", 0) + 1
 
     _perfil = carregar_perfil(data.canal_id or "default") or {}
     plataforma = _perfil.get("plataformas", ["TikTok"])[0] if _perfil.get("plataformas") else "TikTok"
@@ -1416,6 +1536,21 @@ ESTRUTURA: Hook (3s) → Problema (10s) → Solução (20s) → Prova (15s) → 
 
     debitar_creditos(usuario_id, creditos_necessarios, f"roteiro_{data.formato}_{data.modo}")
 
+    # Detectar qualidade do modelo usado no roteiro
+    MODELOS_TOP_ROT = ["claude", "gpt-4", "deepseek-v3", "qwen3-235b", "llama-3.1-405b"]
+    modelo_lower = modelo_usado.lower()
+    qualidade_rot = "top" if any(m in modelo_lower for m in MODELOS_TOP_ROT) else "medio"
+
+    aviso_rot = None
+    if qualidade_rot != "top":
+        aviso_rot = {
+            "tipo": "qualidade_reduzida",
+            "titulo": "⚡ IAs premium no limite",
+            "mensagem": f"O modelo usado foi {modelo_usado}. Para roteiros com DeepSeek V3 ou Claude garantidos, adicione créditos.",
+            "btn_label": "💎 Recarregar para garantir IA top",
+            "btn_aba": "creditos",
+        }
+
     return {
         "ok": True,
         "roteiro": roteiro_texto,
@@ -1423,6 +1558,8 @@ ESTRUTURA: Hook (3s) → Problema (10s) → Solução (20s) → Prova (15s) → 
         "formato": data.formato,
         "modo": data.modo,
         "modelo": modelo_usado,
+        "qualidade": qualidade_rot,
+        "aviso": aviso_rot,
         "creditos_debitados": creditos_necessarios,
         "plataforma": plataforma,
         "nicho": nicho,
@@ -1431,8 +1568,8 @@ ESTRUTURA: Hook (3s) → Problema (10s) → Solução (20s) → Prova (15s) → 
 @app.post("/score-viral")
 async def score_viral(data: ScoreRequest):
     usuario_id = "default"
-    saldo = verificar_saldo(usuario_id, 2)
-    if saldo < 2: raise HTTPException(402, "Créditos insuficientes. Precisa de 2.")
+    # Score Viral é GRÁTIS e ILIMITADO — feature de vício do Vortex
+    # Não cobra créditos, não tem limite por plano
 
     nicho = data.nicho or _perfil.get("nicho","conteúdo digital")
     prompt = f"""Analise este roteiro e dê um SCORE VIRAL detalhado:
