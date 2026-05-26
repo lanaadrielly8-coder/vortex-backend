@@ -29,6 +29,18 @@ from router import (
     log_decisao,
     Complexidade,
 )
+from cerebro import (
+    construir_contexto_roteiro,
+    construir_prompt_imagem_inteligente,
+    aprender_com_roteiro,
+    aprender_com_prompt_imagem,
+    registrar_tendencia,
+    get_estado_cerebro,
+    get_insights_nicho,
+    chamar_ia_com_plano,
+    _cerebro,
+)
+
 from providers import (
     gerar_texto,
     gerar_texto_roteiro,
@@ -839,12 +851,22 @@ async def chat(data: ChatRequest):
     kw_busca_real = ["caso","crime","assassin","maníaco","maniaco","serial killer",
                      "true crime","desaparec","mistério","misterio","acidente",
                      "tragédia","tragedia","historia real","caso real","quem foi",
-                     "o que aconteceu","brasil","sp","rj","mg","pr","rs","ba","ce"]
+                     "o que aconteceu com","notícia","noticia","aconteceu em"]
+    
+    # Perguntas sobre o próprio Vortex ou IA — NUNCA buscar na web
+    kw_sem_busca = ["você sabe","vc sabe","você pode","vc pode","você é","vc é",
+                    "você consegue","vc consegue","me ajuda","me ajude","explica",
+                    "o que é","o que é","como funciona","diferença entre",
+                    "vortex","inteligência artificial","ia vai","substituir",
+                    "programador","desenvolvedor","claude","chatgpt","gemini"]
+    
+    msg_lower = msg_atual.lower()
     
     precisa_busca = (
         tavily_key and
-        len(msg_atual) > 10 and
-        any(kw in msg_atual.lower() for kw in kw_busca_real) and
+        len(msg_atual) > 15 and
+        any(kw in msg_lower for kw in kw_busca_real) and
+        not any(kw in msg_lower for kw in kw_sem_busca) and
         "Histórico:" not in msg_atual[:20]
     )
     
@@ -2017,7 +2039,28 @@ async def tendencias(nicho: str = "", plataforma: str = "", pais: str = "BR", id
 
     # Buscar tendências reais com Tavily
     trends_reais = []
-    if TAVILY_API_KEY:
+    # Sistema completo de tendências — Google Trends + Tavily
+    try:
+        trends_data = await buscar_trends_completo(nicho_final, plataforma_final, pais_final)
+        
+        # Google Trends como fonte primária
+        if trends_data["google_trends"]:
+            trends_reais = [
+                {
+                    "titulo": t,
+                    "descricao": f"Viral agora no Google Brasil — use isso como hook!",
+                    "como_usar": f"Crie conteúdo de {nicho_final} conectando com '{t}'",
+                    "potencial": "alto",
+                    "hashtags": [f"#{t.replace(' ', '')}", f"#{nicho_final}"],
+                    "fonte": "Google Trends"
+                }
+                for t in trends_data["google_trends"][:5]
+            ]
+            print(f"[TRENDS] ✅ Google Trends: {len(trends_reais)} trends")
+    except Exception as e_gt:
+        print(f"[TRENDS] Google Trends falhou: {e_gt}")
+
+    if TAVILY_API_KEY and not trends_reais:
         try:
             query = f"tendências virais {nicho_final} {plataforma_final} {ctx_pais['nome']} 2026"
             resultado_tavily = await buscar_tavily(query, max_results=5)
@@ -2055,7 +2098,7 @@ Responda APENAS com o JSON, sem explicações."""
         except Exception as e:
             print(f"[TRENDS] Tavily falhou: {e}")
 
-    # Fallback para trends estáticas se Tavily falhar
+    # Fallback para trends estáticas se tudo falhar
     if not trends_reais:
         nicho_data = TENDENCIAS_2026.get(nicho_final.lower(), TENDENCIAS_2026.get("lifestyle", {}))
         trends_estaticas = nicho_data.get(plataforma_final, ["Conteúdo autêntico", "POV viral", "Storytelling"])
@@ -2367,6 +2410,97 @@ async def criar_pagamento(request: PagamentoRequest):
 # ══════════════════════════════════════════════════════════════
 
 # ── Tavily Web Search — busca fatos reais para roteiros ──────────────────────
+async def buscar_google_trends(nicho: str = "", pais: str = "BR") -> list:
+    """
+    Busca tendências reais do Google Trends — 100% gratuito, sem key.
+    Retorna lista de termos em alta agora.
+    """
+    import urllib.parse, json as _json
+    
+    # Mapear nicho para termo de busca
+    NICHOS_MAP = {
+        "terror": "terror psicológico,true crime,horror",
+        "gaming": "gameplay,free fire,valorant,minecraft",
+        "finanças": "renda extra,investimento,bitcoin,dinheiro",
+        "fitness": "academia,dieta,perda de peso,treino",
+        "anime": "anime,one piece,dragon ball,naruto",
+        "lifestyle": "rotina,produtividade,dia a dia",
+        "tech": "inteligência artificial,celular,tecnologia",
+        "comédia": "memes,humor,viral",
+    }
+    
+    termos = NICHOS_MAP.get(nicho.lower(), nicho or "viral,tendência")
+    
+    try:
+        # Google Trends API não-oficial via RSS
+        async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
+            # Trending searches do Brasil
+            r = await client.get(
+                f"https://trends.google.com/trends/trendingsearches/daily/rss?geo={pais}",
+                headers={"User-Agent": "Mozilla/5.0"},
+            )
+            
+            if not r.is_success:
+                print(f"[TRENDS-G] erro {r.status_code}")
+                return []
+            
+            # Parsear RSS
+            import re as _re
+            items = _re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', r.text)
+            # Remover o primeiro item que é o título do feed
+            items = [i for i in items if i and "Google" not in i][:10]
+            
+            print(f"[TRENDS-G] ✅ {len(items)} trends do Google Brasil")
+            return items
+            
+    except Exception as e:
+        print(f"[TRENDS-G] falhou: {e}")
+        return []
+
+
+async def buscar_trends_completo(nicho: str, plataforma: str, pais: str = "BR") -> dict:
+    """
+    Sistema completo de tendências — combina Google Trends + Tavily + base interna.
+    Retorna o contexto mais rico possível para o roteiro.
+    """
+    resultado = {
+        "google_trends": [],
+        "tavily_trends": [],
+        "base_interna": [],
+        "contexto_completo": "",
+    }
+    
+    # 1. Google Trends — o que está viral agora no Brasil
+    google = await buscar_google_trends(nicho, pais)
+    resultado["google_trends"] = google[:5]
+    
+    # 2. Tavily — análise profunda com contexto
+    if TAVILY_API_KEY:
+        try:
+            query = f"tendências virais {nicho} {plataforma} Brasil 2026 agora"
+            tavily = await buscar_tavily(query, max_results=5)
+            resultado["tavily_trends"] = [tavily] if tavily else []
+        except Exception as e:
+            print(f"[TRENDS] Tavily falhou: {e}")
+    
+    # 3. Montar contexto completo para a IA usar
+    partes = []
+    
+    if google:
+        header = "VIRAL NO BRASIL AGORA (Google Trends):"
+        items = "\n".join(f"• {t}" for t in google[:5])
+        partes.append(f"{header}\n{items}")
+    
+    if resultado["tavily_trends"]:
+        analise = resultado["tavily_trends"][0][:500]
+        partes.append(f"ANÁLISE DE TENDÊNCIAS {plataforma.upper()}:\n{analise}")
+    
+    resultado["contexto_completo"] = "\n\n".join(partes)
+    
+    print(f"[TRENDS-COMPLETO] ✅ {len(google)} Google + Tavily combinados")
+    return resultado
+
+
 async def buscar_tavily(query: str, max_results: int = 3) -> str:
     """Busca informações reais na web via Tavily AI."""
     key = os.getenv("TAVILY_API_KEY", TAVILY_API_KEY)
@@ -2857,12 +2991,26 @@ async def gerar_imagem_free(request: ImageRequest):
         return {"ok": True, "imagem": url, "modelo": "🍌 Gemini (auto)", "prompt_en": prompt_en}
     except: pass
 
-    # Fallback — Pollinations
+    # Raphael AI — FLUX.1 Dev sem key, ilimitado
+    try:
+        import urllib.parse as _ul
+        p = _ul.quote(prompt_en[:500])
+        async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+            r = await client.get(f"https://raphael.app/api/generate?prompt={p}&model=flux-dev&width=1024&height=1024")
+            if r.is_success:
+                d = r.json()
+                if d.get("url") or d.get("image_url"):
+                    url = d.get("url") or d.get("image_url")
+                    return {"ok": True, "imagem": url, "modelo": "✏️ Raphael AI FLUX Dev", "prompt_en": prompt_en}
+    except Exception as e:
+        print(f"[Raphael] falhou: {e}")
+
+    # Fallback final — Pollinations
     import urllib.parse as _ul
     prompt_rich = prompt_en + ", masterpiece, ultra detailed, 8k uhd, sharp focus, cinematic"
     prompt_safe = _ul.quote(prompt_rich[:600])
     url = f"https://image.pollinations.ai/prompt/{prompt_safe}?width=1280&height=1280&model=flux-pro&nologo=true&enhance=true&seed={hash(prompt_en)%99999}"
-    return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations Flux Pro (auto)", "prompt_en": prompt_en}
+    return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations Flux Pro", "prompt_en": prompt_en}
 
 
 @app.post("/gerar-video-free")
@@ -2877,6 +3025,42 @@ async def gerar_video_free(request: VideoRequest):
         return {"ok": True, "video_url": url, "modelo": "HuggingFace LTX-Video (free)", "prompt_en": prompt_en}
     except Exception as e:
         raise HTTPException(502, f"Vídeo HF falhou: {str(e)[:100]}")
+
+
+@app.post("/cerebro/feedback")
+async def cerebro_feedback(request: Request):
+    """
+    Recebe feedback do usuário sobre roteiros e imagens.
+    Isso alimenta o aprendizado do cérebro do Vortex.
+    """
+    data = await request.json()
+    tipo = data.get("tipo", "roteiro")
+    aprovado = data.get("aprovado", False)
+    conteudo = data.get("conteudo", "")
+    nicho = data.get("nicho", _perfil.get("nicho", "geral"))
+    score = data.get("score_viral", 0.0)
+    
+    if tipo == "roteiro":
+        aprender_com_roteiro(conteudo, nicho, aprovado, score)
+    elif tipo == "imagem":
+        modelo = data.get("modelo", "")
+        aprender_com_prompt_imagem(conteudo, modelo, aprovado)
+    
+    return {"ok": True, "mensagem": "Vortex aprendeu com seu feedback!"}
+
+
+@app.get("/cerebro/status")
+async def cerebro_status():
+    """Retorna o estado atual do cérebro do Vortex."""
+    estado = get_estado_cerebro()
+    return {"ok": True, "cerebro": estado}
+
+
+@app.get("/cerebro/insights/{nicho}")
+async def cerebro_insights(nicho: str):
+    """Retorna insights aprendidos sobre um nicho."""
+    insights = get_insights_nicho(nicho)
+    return {"ok": True, "insights": insights}
 
 
 @app.get("/me")
