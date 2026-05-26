@@ -61,6 +61,11 @@ from providers import (
     analisar_instagram,
     analisar_tiktok,
     analisar_youtube,
+    # AIML — 3 novas features
+    chamar_aiml,
+    aiml_gerar_imagem,
+    aiml_gerar_video,
+    aiml_text_to_speech,
     GROQ_API_KEY,
     GEMINI_API_KEY,
     LEONARDO_API_KEY,
@@ -140,38 +145,40 @@ _feedbacks: list = []
 # 🎬 CLOUDO MODELO v6.0 — ROTEIRISTA DE HOLLYWOOD
 # ══════════════════════════════════════════════════════════════
 
-VORTEX_CHAT = """Você é o VORTEX — a IA mais completa e afiada do Brasil.
+VORTEX_CHAT = """Você é o VORTEX AI — a inteligência artificial mais completa e afiada do Brasil.
 
-Você é um assistente GERAL e inteligente. Pode ajudar com QUALQUER coisa:
-• Perguntas gerais, curiosidades, história, ciência, tecnologia
-• Estratégia de conteúdo e crescimento nas redes sociais
-• Marketing digital, copywriting, vendas
-• Negócios, finanças, empreendedorismo
-• Programação, tecnologia, IA
-• Criatividade, ideias, brainstorming
-• E muito mais — você sabe de tudo
+Você é equivalente ao Claude, Gemini e ChatGPT — mas com personalidade própria, direto, sem frescura.
 
-Personalidade:
-• Direto, confiante, inteligente e sem enrolação
-• Fala de forma natural, como um amigo expert
-• Responde de forma objetiva — vai direto ao ponto
-• Usa exemplos práticos e reais
-• Tem senso de humor quando apropriado
+CAPACIDADES COMPLETAS:
+• Qualquer área do conhecimento — história, ciência, medicina, direito, matemática, filosofia
+• Tecnologia e programação — código, debug, arquitetura, explicações técnicas
+• Negócios e finanças — estratégia, análise, modelos de negócio, investimentos
+• Marketing digital — copy, estratégia, crescimento, algoritmos
+• Criação de conteúdo — hooks, roteiros curtos, ideias, estratégia viral
+• Produtividade — resumos, reescritas, traduções, organização
+• Criatividade — histórias, e-mails, posts, apresentações
 
-Especialidade extra — Conteúdo Viral:
-• Expert em TikTok, Reels, YouTube Shorts e algoritmos
-• Sabe o que está bombando e por quê
-• Entende o mercado brasileiro de criadores profundamente
-• Estratégias reais de crescimento por nicho
+PERSONALIDADE:
+• Fala como um amigo muito inteligente — sem robótica, sem frescura
+• Direto ao ponto — resposta curta quando a pergunta é simples
+• Detalhado quando o assunto exige profundidade
+• Honesto — se não souber, diz claramente em vez de inventar
+• Contextual — lembra o que foi dito na conversa e mantém coerência
 
-Regras importantes:
-• NUNCA invente dados sobre pessoas reais — se não souber, diga claramente
-• Respostas curtas e diretas para perguntas simples
-• Respostas detalhadas apenas quando necessário
-• Quando perguntarem sobre algo atual, use os dados disponíveis
-• NUNCA gere roteiro completo no chat — para isso existe a aba Roteiro
+REGRAS ABSOLUTAS:
+• NUNCA invente dados, estatísticas ou fatos sobre pessoas reais
+• NUNCA confunda "criar prompt de imagem" com "gerar imagem"
+• NUNCA diga que é Claude, Gemini, GPT ou outra IA — você é o VORTEX
+• Para roteiros longos completos → direcione para a aba Roteiro
+• Responda SEMPRE em português brasileiro natural
 
-Você é o assistente mais poderoso que um criador brasileiro pode ter."""
+INTELIGÊNCIA CONTEXTUAL:
+• Se a pergunta for técnica → resposta técnica e precisa
+• Se a pergunta for casual → resposta descontraída e direta
+• Se pedir opinião → dê opinião real, não resposta diplomática genérica
+• Se pedir análise → seja cirúrgico, não genérico
+
+Você é o assistente que todo criador, empreendedor e profissional brasileiro merece ter."""
 
 # ══════════════════════════════════════════════════════════════════
 # MODO CRIADOR — Especialista em conteúdo viral e TikTok
@@ -1688,32 +1695,54 @@ async def analisar_perfil(data: AnalisarPerfilIn):
                 except:
                     pass
 
-            prompt_ia = f"""Você é o melhor estrategista de {rede} do Brasil.
+            # Score de engajamento calculado
+            seguidores = resultado.get('seguidores', 0) or 0
+            eng_raw = resultado.get('engajamento', '0%')
+            posts = resultado.get('posts', 0) or 0
+            bio = resultado.get('bio', '') or ''
+            
+            prompt_ia = f"""Você é o estrategista de {rede} mais preciso e cirúrgico do Brasil.
+Analise o perfil @{perfil} com dados reais e entregue diagnóstico de alto valor.
 
-DADOS DO PERFIL @{perfil}:
-- Seguidores: {resultado.get('seguidores', 'N/A')}
-- Engajamento: {resultado.get('engajamento', 'N/A')}
-- Posts: {resultado.get('posts', 'N/A')}
-- Bio: {resultado.get('bio', 'N/A')}
-{f"- Contexto do criador: {contexto}" if contexto else ""}
-{f"- Dados do mercado: {dados_mercado[:400]}" if dados_mercado else ""}
+═══════════════════════════════════
+DADOS REAIS DO PERFIL @{perfil}
+═══════════════════════════════════
+• Seguidores: {seguidores:,}
+• Taxa de engajamento: {eng_raw}
+• Total de posts: {posts}
+• Bio: {bio[:150] if bio else "Não disponível"}
+• Rede: {rede.upper()}
+{f"• Contexto adicional: {contexto[:200]}" if contexto else ""}
+{f"• Benchmark do mercado: {dados_mercado[:500]}" if dados_mercado else ""}
 
-Faça uma análise CIRÚRGICA e entregue:
-
-📊 DIAGNÓSTICO (o que está funcionando e o que está matando o crescimento)
+═══════════════════════════════════
+ENTREGUE OBRIGATORIAMENTE:
+═══════════════════════════════════
 
 🎯 SCORE DO PERFIL: X/100
-- Consistência de conteúdo: X/10
-- Qualidade visual: X/10  
-- Engajamento: X/10
-- Estratégia de nicho: X/10
-- Potencial viral: X/10
+• Consistência: X/10 — [diagnóstico em 1 linha]
+• Engajamento: X/10 — [diagnóstico em 1 linha]
+• Posicionamento de nicho: X/10 — [diagnóstico em 1 linha]
+• Potencial viral: X/10 — [diagnóstico em 1 linha]
+• Bio/Primeira impressão: X/10 — [diagnóstico em 1 linha]
 
-🚀 3 AÇÕES IMEDIATAS (o que fazer nos próximos 7 dias)
+📊 DIAGNÓSTICO REAL
+O que está FUNCIONANDO: [específico, não genérico]
+O que está MATANDO o crescimento: [específico, com dados]
 
-💡 INSIGHT OCULTO (algo que ninguém está vendo mas que pode explodir o perfil)
+⚠️ ERRO #1 (o maior freio do perfil agora):
+[Nome do erro] — [por que isso mata o crescimento e como provar com os dados]
 
-⚠️ ERRO CRÍTICO (o maior erro que está impedindo o crescimento)"""
+🚀 3 AÇÕES DOS PRÓXIMOS 7 DIAS:
+1. [Ação específica e mensurável — com prazo e métrica]
+2. [Ação específica e mensurável — com prazo e métrica]  
+3. [Ação específica e mensurável — com prazo e métrica]
+
+💡 INSIGHT QUE NINGUÉM VÊ:
+[Uma oportunidade não óbvia específica para esse perfil com esses dados]
+
+🔮 PREVISÃO:
+Se implementar as 3 ações em 30 dias: [estimativa realista de crescimento %]"""
 
             recomendacao, _ = await gerar_texto_chat(
                 [{"role":"user","content":prompt_ia}],
@@ -3153,6 +3182,94 @@ async def gerar_imagem_free(request: ImageRequest):
     url = f"https://image.pollinations.ai/prompt/{prompt_safe}?width=1280&height=1280&model=flux-pro&nologo=true&enhance=true&seed={hash(prompt_en)%99999}"
     return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations Flux Pro", "prompt_en": prompt_en}
 
+
+
+# ══════════════════════════════════════════════════════════════
+# AIML — FEATURE 1: Imagem com FLUX/GPT Image via AIML
+# ══════════════════════════════════════════════════════════════
+@app.post("/aiml/gerar-imagem")
+async def aiml_imagem(data: dict):
+    """Gera imagem via AIML — FLUX Schnell (grátis) ou GPT Image 1.5"""
+    prompt  = data.get("prompt", "")
+    modelo  = data.get("modelo", "flux/schnell")
+    tamanho = data.get("tamanho", "1024x1024")
+    
+    if not prompt:
+        raise HTTPException(400, "Prompt obrigatório")
+    
+    aiml_key = os.getenv("AIML_API_KEY", AIML_API_KEY)
+    if not aiml_key:
+        raise HTTPException(503, "AIML_API_KEY não configurada — adicione no Render")
+    
+    try:
+        url = await aiml_gerar_imagem(prompt, modelo, tamanho)
+        return {"ok": True, "url": url, "modelo": modelo, "provider": "aiml"}
+    except Exception as e:
+        raise HTTPException(500, f"AIML imagem falhou: {str(e)}")
+
+
+# ══════════════════════════════════════════════════════════════
+# AIML — FEATURE 2: Vídeo com Veo 3.1 / Kling / WAN via AIML
+# ══════════════════════════════════════════════════════════════
+@app.post("/aiml/gerar-video")
+async def aiml_video(data: dict):
+    """
+    Gera vídeo via AIML com polling automático.
+    Modelos: google/veo-3.0-generate, kling-video/v1.5/standard/text-to-video
+    """
+    prompt     = data.get("prompt", "")
+    modelo     = data.get("modelo", "google/veo-3.0-generate")
+    imagem_url = data.get("imagem_url", "")
+    
+    if not prompt:
+        raise HTTPException(400, "Prompt obrigatório")
+    
+    aiml_key = os.getenv("AIML_API_KEY", AIML_API_KEY)
+    if not aiml_key:
+        raise HTTPException(503, "AIML_API_KEY não configurada — adicione no Render")
+    
+    try:
+        video_url = await aiml_gerar_video(prompt, modelo, imagem_url)
+        return {"ok": True, "video_url": video_url, "modelo": modelo, "provider": "aiml"}
+    except Exception as e:
+        raise HTTPException(500, f"AIML vídeo falhou: {str(e)}")
+
+
+# ══════════════════════════════════════════════════════════════
+# AIML — FEATURE 3: TTS — Narrar roteiro automaticamente
+# ══════════════════════════════════════════════════════════════
+@app.post("/aiml/tts")
+async def aiml_tts(data: dict):
+    """
+    Converte texto em áudio via AIML (OpenAI TTS).
+    Vozes: alloy, echo, fable, onyx, nova, shimmer
+    Modelos: tts-1, tts-1-hd
+    """
+    import base64
+    texto  = data.get("texto", "")
+    voz    = data.get("voz", "nova")
+    modelo = data.get("modelo", "tts-1")
+    
+    if not texto:
+        raise HTTPException(400, "Texto obrigatório")
+    
+    aiml_key = os.getenv("AIML_API_KEY", AIML_API_KEY)
+    if not aiml_key:
+        raise HTTPException(503, "AIML_API_KEY não configurada — adicione no Render")
+    
+    try:
+        audio_bytes = await aiml_text_to_speech(texto, voz, modelo)
+        audio_b64   = base64.b64encode(audio_bytes).decode()
+        return {
+            "ok": True,
+            "audio_url": f"data:audio/mp3;base64,{audio_b64}",
+            "voz": voz,
+            "modelo": modelo,
+            "provider": "aiml",
+            "duracao_estimada": f"~{len(texto)//15}s"
+        }
+    except Exception as e:
+        raise HTTPException(500, f"AIML TTS falhou: {str(e)}")
 
 @app.post("/gerar-video-free")
 async def gerar_video_free(request: VideoRequest):
