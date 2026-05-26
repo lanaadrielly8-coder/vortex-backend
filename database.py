@@ -29,16 +29,27 @@ else:
 DB_FILE = "vortex_db.json"
 
 def _load_db() -> dict:
-    try:
-        with open(DB_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return {"usuarios": {}, "roteiros": [], "geracoes": []}
-
+    with _db_lock:
+        try:
+            with open(DB_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {"usuarios": {}, "roteiros": [], "geracoes": []}
 def _save_db(data: dict):
-    with open(DB_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
+    with _db_lock:
+        tmp = DB_FILE + ".tmp"
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            import os as _os
+            _os.replace(tmp, DB_FILE)
+        except Exception as e:
+            print(f"[DB] Erro ao salvar: {e}")
+            try:
+                import os as _os
+                _os.remove(tmp)
+            except:
+                pass
 # ── USUÁRIOS ──────────────────────────────────────────────────────────────────
 def get_usuario_db(usuario_id: str) -> dict:
     if _usar_supabase:

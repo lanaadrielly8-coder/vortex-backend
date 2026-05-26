@@ -1,4 +1,4 @@
-﻿import os, json, asyncio, base64
+﻿import os, json, asyncio, base64, hmac, hashlib
 from datetime import datetime, date
 from database import (
     get_usuario_db, salvar_usuario_db,
@@ -11,6 +11,9 @@ from auth import criar_token, verificar_token, get_usuario_token, google_auth_ur
 from typing import Optional, List
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from pydantic import BaseModel
 import httpx
 
@@ -119,9 +122,94 @@ print(f"[VORTEX] Keys ativas: {[k for k,v in _keys_status.items() if v]}")
 print(f"[VORTEX] Keys faltando: {[k for k,v in _keys_status.items() if not v]}")
 
 app = FastAPI(title="Vortex AI Backend", version="6.0.0")
+
+# Rate Limiting — protege contra abuso
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+# ── Helper: pegar usuario_id real ─────────────────────────────
+def extrair_usuario_id(request: Request, data_obj=None) -> str:
+    """
+    Extrai ID único do usuário:
+    1. Token JWT (login Google)
+    2. Header X-Session-ID (sessão anônima)
+    3. Campo no body
+    4. Fallback por IP
+    """
+    # 1. Token JWT
+    try:
+        usuario = get_usuario_token(request)
+        if usuario and usuario.get("sub"):
+            return str(usuario["sub"])
+    except:
+        pass  # silencioso intencional
+
+    # 2. Header de sessão anônima (enviado pelo frontend)
+    session_id = request.headers.get("X-Session-ID", "")
+    if session_id and len(session_id) > 8:
+        return f"anon_{session_id[:32]}"
+
+    # 3. Campo no body
+    if data_obj:
+        for campo in ["usuario_id", "session_id", "uid"]:
+            uid = getattr(data_obj, campo, None)
+            if uid and len(str(uid)) > 4:
+                return f"u_{str(uid)[:32]}"
+
+    # 4. Fallback por IP (melhor que "default" único)
+    try:
+        ip = request.client.host if request.client else "local"
+        return f"ip_{ip.replace('.','_')}"
+    except Exception as _e:
+        print(f"[WARN] IP fallback: {_e}")
+        return "anon_fallback"
+
+
+# ── Helper: pegar usuario_id real ─────────────────────────────
+def extrair_usuario_id(request: Request, data_obj=None) -> str:
+    """
+    Extrai o ID único do usuário na seguinte ordem:
+    1. Token JWT (usuário logado com Google)
+    2. Header X-Session-ID (usuário com sessão anônima)
+    3. Body campo usuario_id ou session_id
+    4. Fallback: "anon_default" (nunca "default" puro)
+    """
+    # 1. Token JWT
+    usuario = get_usuario_token(request)
+    if usuario and usuario.get("sub"):
+        return usuario["sub"]
+    
+    # 2. Header de sessão anônima
+    session_id = request.headers.get("X-Session-ID", "")
+    if session_id and len(session_id) > 8:
+        return f"anon_{session_id[:32]}"
+    
+    # 3. Body
+    if data_obj:
+        uid = getattr(data_obj, "usuario_id", None) or getattr(data_obj, "session_id", None)
+        if uid and len(str(uid)) > 4:
+            return f"u_{str(uid)[:32]}"
+    
+    # 4. Fallback por IP (melhor que "default")
+    ip = request.client.host if request.client else "unknown"
+    return f"ip_{ip.replace('.','_')}"
+
+# Domínios permitidos — adicionar domínio customizado quando tiver
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",      # dev local
+    "http://localhost:3000",      # dev alternativo
+    "https://project-xg4jw.vercel.app",  # Vercel atual
+    "https://vortex.com.br",      # domínio futuro
+    "https://www.vortex.com.br",
+    "https://vortexai.com.br",
+    os.getenv("FRONTEND_URL", "http://localhost:5173"),  # env var
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -147,23 +235,7 @@ def _carregar_limites() -> dict:
         with open(_LIMITE_FILE, "r") as f:
             return _json_limite.load(f)
     except:
-        return {}
-
-def _salvar_limites(data: dict):
-    try:
-        with open(_LIMITE_FILE, "w") as f:
-            _json_limite.dump(data, f)
-    except Exception as e:
-        print(f"[LIMITE] Erro ao salvar: {e}")
-
-# Sistema de limites persistente — resiste a reinicializações
-import json as _json_limite
-_LIMITE_FILE = "/tmp/vortex_limites.json"
-
-def _carregar_limites() -> dict:
-    try:
-        with open(_LIMITE_FILE, "r") as f:
-            return _json_limite.load(f)
+        pass
     except:
         return {}
 
@@ -182,6 +254,28 @@ def _carregar_limites() -> dict:
     try:
         with open(_LIMITE_FILE, "r") as f:
             return _json_limite.load(f)
+    except:
+        pass
+    except:
+        return {}
+
+def _salvar_limites(data: dict):
+    try:
+        with open(_LIMITE_FILE, "w") as f:
+            _json_limite.dump(data, f)
+    except Exception as e:
+        print(f"[LIMITE] Erro ao salvar: {e}")
+
+# Sistema de limites persistente — resiste a reinicializações
+import json as _json_limite
+_LIMITE_FILE = "/tmp/vortex_limites.json"
+
+def _carregar_limites() -> dict:
+    try:
+        with open(_LIMITE_FILE, "r") as f:
+            return _json_limite.load(f)
+    except:
+        pass
     except:
         return {}
 
@@ -731,7 +825,7 @@ class PagamentoRequest(BaseModel):
 # ══════════════════════════════════════════════════════════════
 
 @app.get("/auth/google")
-async def auth_google():
+async def auth_google(request: Request):
     url = google_auth_url()
     if not url:
         raise HTTPException(500, "GOOGLE_CLIENT_ID não configurado")
@@ -783,7 +877,7 @@ async def auth_me(request: Request):
     }}
 
 @app.post("/auth/logout")
-async def auth_logout():
+async def auth_logout(request: Request):
     from fastapi.responses import JSONResponse
     response = JSONResponse({"ok": True})
     response.delete_cookie("vortex_token")
@@ -851,7 +945,7 @@ def onboarding_status():
             "campos_faltando": campos_faltando, "perfil_atual": _perfil}
 
 @app.post("/onboarding")
-async def onboarding(data: OnboardingIn):
+async def onboarding(data: OnboardingIn, request: Request):
     dados = {k: v for k, v in data.dict().items() if v and (not isinstance(v,list) or len(v)>0)}
     _perfil.update(dados)
     _system_cache["hash"] = ""
@@ -892,7 +986,7 @@ async def onboarding(data: OnboardingIn):
         if not roteiro_exemplo:
             roteiro_exemplo = exemplos["terror"]
     except:
-        pass
+        pass  # silencioso intencional
 
     return {"ok": True, "perfil_completo": True, "perfil": _perfil, "boas_vindas": boas_vindas, "roteiro_exemplo": roteiro_exemplo}
 
@@ -902,13 +996,14 @@ async def onboarding(data: OnboardingIn):
 # ══════════════════════════════════════════════════════════════
 
 @app.post("/chat")
-async def chat(data: ChatRequest):
+@limiter.limit("30/minute")  # max 30 chats por minuto por IP
+async def chat(data: ChatRequest, request: Request):
+    usuario_id = extrair_usuario_id(request, data)
     lim = checar_limite(usuario_id)
     if lim["usado"] >= lim["limite"]:
         msg_limite = "Limite de 10 chats/dia do plano Free atingido. Faça upgrade para chats ilimitados!" if lim["is_free"] else "Limite diário atingido."
         raise HTTPException(429, msg_limite)
     _limite["usado"] = _limite.get("usado", 0) + 1
-    usuario_id = "default"
     saldo = verificar_saldo(usuario_id, 1)
     if saldo < 1:
         raise HTTPException(402, "Créditos insuficientes.")
@@ -1017,23 +1112,45 @@ async def chat(data: ChatRequest):
                 msg_atual = l
                 break
     
-    kw_busca_real = ["caso","crime","assassin","maníaco","maniaco","serial killer",
-                     "true crime","desaparec","mistério","misterio","acidente",
-                     "tragédia","tragedia","historia real","caso real","quem foi",
-                     "o que aconteceu com","notícia","noticia","aconteceu em"]
-    
-    # Perguntas sobre o próprio Vortex ou IA — NUNCA buscar na web
-    kw_sem_busca = ["você sabe","vc sabe","você pode","vc pode","você é","vc é",
-                    "você consegue","vc consegue","me ajuda","me ajude","explica",
-                    "o que é","o que é","como funciona","diferença entre",
-                    "vortex","inteligência artificial","ia vai","substituir",
-                    "programador","desenvolvedor","claude","chatgpt","gemini"]
-    
+    # Palavras que ATIVAM busca — só casos/eventos reais específicos
+    kw_busca_real = [
+        "caso real","crime real","assassin","serial killer","true crime",
+        "desaparec","acidente","tragédia","tragedia",
+        "notícia","noticia","aconteceu em","o que aconteceu com",
+        "quem foi","historia real","caso de",
+    ]
+
+    # Palavras que BLOQUEIAM busca — perguntas pessoais, sobre IA, opiniões
+    kw_sem_busca = [
+        # Perguntas sobre o Vortex/IA
+        "você","vc","voce","você é","vc é","você sabe","vc sabe",
+        "você pode","vc pode","você consegue","me ajuda","me ajude",
+        "vortex","inteligência artificial","ia vai","substituir",
+        "programador","desenvolvedor","claude","chatgpt","gemini","openai",
+        # Perguntas pessoais / comparações
+        "mais inteligente","quem é melhor","você ou","eu ou","qual melhor",
+        "sua opinião","o que você acha","você prefere","você gosta",
+        # Conceitos gerais que a IA já sabe
+        "explica","como funciona","o que é","diferença entre","o que significa",
+        "me ensina","me diz","me fala","me conta","me explica",
+        # Perguntas casuais
+        "oi","olá","ola","tudo bem","bom dia","boa tarde","boa noite",
+        "obrigado","valeu","show","ótimo","legal","ok","certo",
+        # Criação de conteúdo
+        "roteiro","hook","viral","tiktok","reels","tendência","ideia",
+        "cria","gera","escreve","faz um","me dá",
+    ]
+
     msg_lower = msg_atual.lower()
-    
+
+    # Busca só é feita quando:
+    # 1. Tem keyword de busca real
+    # 2. Não tem keyword de bloqueio
+    # 3. Mensagem tem mais de 20 chars (não é saudação)
+    # 4. Não é resposta de histórico
     precisa_busca = (
         tavily_key and
-        len(msg_atual) > 15 and
+        len(msg_atual) > 20 and
         any(kw in msg_lower for kw in kw_busca_real) and
         not any(kw in msg_lower for kw in kw_sem_busca) and
         "Histórico:" not in msg_atual[:20]
@@ -1208,6 +1325,8 @@ MÉDIA: X/10 — [VIRAL/POTENCIAL/RETRABALHAR]"""
                 provedor_preferido="gemini",
             )
         except:
+            pass
+        except:
             raise HTTPException(500, "Serviço temporariamente indisponível. Tente novamente.")
     debitar_creditos(usuario_id, 1, "chat")
     incrementar_limite_diario(usuario_id, "chat")
@@ -1300,7 +1419,7 @@ MÉDIA: X/10 — [VIRAL/POTENCIAL/RETRABALHAR]"""
         try:
             fatos_reais = await buscar_tavily(f"{tema} caso real Brasil {nicho}")
         except:
-            pass
+            pass  # silencioso intencional
 
     if fatos_reais:
         prompt = f"""DADOS REAIS PESQUISADOS (use como base):
@@ -1328,8 +1447,9 @@ INSTRUÇÃO EXTRA: Use os dados reais acima. Seja hiper-específico — nomes, d
 # ══════════════════════════════════════════════════════════════
 
 @app.post("/gerar-roteiro")
-async def gerar_roteiro(data: RoteiroIn):
-    usuario_id = "default"
+@limiter.limit("10/minute")  # max 10 roteiros por minuto por IP
+async def gerar_roteiro(data: RoteiroIn, request: Request):
+    usuario_id = extrair_usuario_id(request, data)
     creditos_necessarios = {"curto":1,"medio":2,"longo":3,"completo":5}.get(data.formato, 2)
     if verificar_saldo(usuario_id, creditos_necessarios) < creditos_necessarios:
         raise HTTPException(402, "Créditos insuficientes.")
@@ -1365,7 +1485,7 @@ async def gerar_roteiro(data: RoteiroIn):
             if isinstance(fatos_reais, Exception):    fatos_reais = ""
             if isinstance(tendencias_reais, Exception): tendencias_reais = ""
         except:
-            pass
+            pass  # silencioso intencional
 
     system = """Você é o VORTEX SCRIPT ENGINE — o melhor roteirista de conteúdo viral do Brasil.
 Você já criou roteiros que geraram mais de 50 milhões de views no TikTok e Instagram.
@@ -1566,8 +1686,8 @@ ESTRUTURA: Hook (3s) → Problema (10s) → Solução (20s) → Prova (15s) → 
     }
 
 @app.post("/score-viral")
-async def score_viral(data: ScoreRequest):
-    usuario_id = "default"
+async def score_viral(data: ScoreRequest, request: Request):
+    usuario_id = extrair_usuario_id(request, data)
     # Score Viral é GRÁTIS e ILIMITADO — feature de vício do Vortex
     # Não cobra créditos, não tem limite por plano
 
@@ -1608,8 +1728,8 @@ M�dia final e veredicto: VIRAL / POTENCIAL / RETRABALHAR"""
 # ══════════════════════════════════════════════════════════════
 
 @app.post("/dna-criador")
-async def aprender_dna(data: DNARequest):
-    usuario_id = "default"
+async def aprender_dna(data: DNARequest, req: Request):
+    usuario_id = extrair_usuario_id(req)
     saldo = verificar_saldo(usuario_id, 3)
     if saldo < 3: raise HTTPException(402, "Créditos insuficientes. Precisa de 3.")
 
@@ -1674,8 +1794,8 @@ def get_canal(canal_id: str):
 # ══════════════════════════════════════════════════════════════
 
 @app.get("/calendario")
-async def calendario():
-    usuario_id = "default"
+async def calendario(req: Request):
+    usuario_id = extrair_usuario_id(req)
     saldo = verificar_saldo(usuario_id, 2)
     if saldo < 2: raise HTTPException(402, "Créditos insuficientes.")
 
@@ -1716,8 +1836,8 @@ Para cada dia da semana (seg a dom), sugira:
 # ══════════════════════════════════════════════════════════════
 
 @app.get("/relatorio-semanal")
-async def relatorio_semanal():
-    usuario_id = "default"
+async def relatorio_semanal(req: Request):
+    usuario_id = extrair_usuario_id(req)
     saldo = verificar_saldo(usuario_id, 3)
     if saldo < 3: raise HTTPException(402, "Créditos insuficientes.")
 
@@ -1754,7 +1874,7 @@ O relatório deve incluir:
 # ══════════════════════════════════════════════════════════════
 
 @app.get("/trends-agora")
-async def trends_agora():
+async def trends_agora(request: Request):
     nicho = _perfil.get("nicho","lifestyle")
     plataformas = _perfil.get("plataformas",["TikTok"])
     plat = plataformas[0] if isinstance(plataformas,list) else plataformas
@@ -1805,8 +1925,8 @@ Uma insight que poucos criadores de {nicho} sabem sobre o algoritmo do {plat} ag
 # ══════════════════════════════════════════════════════════════
 
 @app.post("/analisar-perfil")
-async def analisar_perfil(data: AnalisarPerfilIn):
-    usuario_id = "default"
+async def analisar_perfil(data: AnalisarPerfilIn, req: Request):
+    usuario_id = extrair_usuario_id(req)
     saldo = verificar_saldo(usuario_id, 2)
     if saldo < 2: raise HTTPException(402, "Créditos insuficientes.")
     rede = data.rede.lower()
@@ -1830,7 +1950,7 @@ async def analisar_perfil(data: AnalisarPerfilIn):
                     nicho_perfil = resultado.get("nicho", "") or resultado.get("bio", "")[:50]
                     dados_mercado = await buscar_tavily(f"estratégia crescimento {rede} {nicho_perfil} 2026 Brasil")
                 except:
-                    pass
+                    pass  # silencioso intencional
 
             # Score de engajamento calculado
             seguidores = resultado.get('seguidores', 0) or 0
@@ -1908,7 +2028,7 @@ class AnalisarVideoIn(BaseModel):
     nicho: Optional[str] = "viral"
 
 @app.post("/analisar-video")
-async def analisar_video(data: AnalisarVideoIn):
+async def analisar_video(data: AnalisarVideoIn, request: Request):
     """
     Analisa um vídeo e retorna:
     - Por que está ou não viralizando
@@ -1927,7 +2047,7 @@ async def analisar_video(data: AnalisarVideoIn):
         try:
             dados_nicho = await buscar_tavily(f"vídeos virais {data.nicho} TikTok 2026 o que funciona")
         except:
-            pass
+            pass  # silencioso intencional
 
     prompt = f"""Você é o melhor analista de vídeos virais do Brasil.
 
@@ -2000,22 +2120,39 @@ async def traduzir_prompt(texto: str) -> str:
         print(f"[PT→EN] {texto[:40]} → {traduzido[:40]}")
         return traduzido.strip()
     except:
+        pass
+    except:
         return texto
 
 @app.post("/gerar-imagem")
-async def gerar_imagem(request: ImageRequest):
-    usuario_id = "default"
+async def gerar_imagem(request: ImageRequest, req: Request):
+    usuario_id = extrair_usuario_id(req)
+    # Créditos de imagem calculados com margem real (custo_fal × 1.4 / valor_credito_medio)
     creditos_map = {
-        "wavespeed-ai/flux-dev": 5,
-        "wavespeed-ai/flux-dev-ultra-fast": 4,
-        "wavespeed-ai/flux-schnell": 2,
+        # FAL — custo real com margem 40%
+        "flux-dev":              8,   # $0.025/img → 8cr
+        "flux-schnell":          3,   # $0.003/img → 3cr
+        "ideogram":              15,  # $0.08/img → 15cr
+        "stability":             12,  # $0.065/img → 12cr
+        # Grátis
+        "pollinations":          0,
+        "hf_flux":               0,
+        "gemini":                0,
+        "raphael":               0,
+        # AIML
+        "aiml_flux":             1,
+        "aiml_flux_dev":         2,
+        "aiml_gpt":              4,
+        # Legado
+        "wavespeed-ai/flux-dev": 8,
+        "wavespeed-ai/flux-dev-ultra-fast": 5,
+        "wavespeed-ai/flux-schnell": 3,
         "PHOENIX": 6,
-        "LEONARDO_SIGNATURE": 8,
-        "LEONARDO_CREATIVE": 7,
-        "stability-ultra": 7,
-        "ideogram-v2": 6,
+        "LEONARDO_SIGNATURE": 10,
+        "stability-ultra": 12,
+        "ideogram-v2": 15,
     }
-    creditos = creditos_map.get(request.modelo or "wavespeed-ai/flux-dev", 5)
+    creditos = creditos_map.get(request.modelo or "pollinations", 5)
     saldo = verificar_saldo(usuario_id, creditos)
     if saldo < creditos: raise HTTPException(402, f"Créditos insuficientes. Precisa de {creditos}.")
 
@@ -2109,8 +2246,8 @@ async def gerar_imagem(request: ImageRequest):
 # ══════════════════════════════════════════════════════════════
 
 @app.post("/gerar-video")
-async def gerar_video(request: VideoRequest):
-    usuario_id = "default"
+async def gerar_video(request: VideoRequest, req: Request):
+    usuario_id = extrair_usuario_id(req)
     creditos_base_map = {
         "wavespeed-ai/wan-2.2/t2v-480p": 6,
         "wavespeed-ai/wan-2.2/t2v-5b-720p": 12,
@@ -2212,9 +2349,9 @@ async def gerar_video(request: VideoRequest):
 # ══════════════════════════════════════════════════════════════
 
 @app.post("/clonar-voz")
-async def clonar_voz(audio: UploadFile = File(...), nome: str = "Minha Voz"):
+async def clonar_voz(audio: UploadFile = File(...), nome: str = "Minha Voz", request: Request = None):
     """Clona a voz do usuário via ElevenLabs Instant Voice Cloning."""
-    usuario_id = "default"
+    usuario_id = extrair_usuario_id(request) if request else "anon_voice"
     saldo = verificar_saldo(usuario_id, 10)
     if saldo < 10: raise HTTPException(402, "Créditos insuficientes. Precisa de 10.")
 
@@ -2256,8 +2393,8 @@ class MusicaRequest(BaseModel):
 
 
 @app.post("/gerar-musica")
-async def gerar_musica(request: MusicaRequest):
-    usuario_id = "default"
+async def gerar_musica(request: MusicaRequest, req: Request):
+    usuario_id = extrair_usuario_id(req)
     creditos = 3
     saldo = verificar_saldo(usuario_id, creditos)
     if saldo < creditos:
@@ -2291,8 +2428,8 @@ def _quebrar_texto(texto: str, limite: int = 900) -> list:
 
 
 @app.post("/gerar-voz")
-async def gerar_voz(request: VoiceRequest):
-    usuario_id = "default"
+async def gerar_voz(request: VoiceRequest, req: Request):
+    usuario_id = extrair_usuario_id(req)
     chars = len(request.texto)
     creditos_necessarios = max(1, (chars // 1000) * 3)
     saldo = verificar_saldo(usuario_id, creditos_necessarios)
@@ -2312,12 +2449,12 @@ _trends_cache: dict = {}
 _trends_cache_ts: dict = {}
 
 @app.get("/tendencias")
-async def tendencias(nicho: str = "", plataforma: str = "", pais: str = "BR", idioma: str = "pt"):
+async def tendencias(request: Request, nicho: str = "", plataforma: str = "", pais: str = "BR", idioma: str = "pt"):
     """
     Sistema global de tendências — busca tendências reais em tempo real.
     Detecta o país e idioma automaticamente para resultados localizados.
     """
-    usuario_id = "default"
+    usuario_id = extrair_usuario_id(request)
     nicho_final = nicho or _perfil.get("nicho", "conteúdo viral")
     plats = _perfil.get("plataformas", [])
     plataforma_final = plataforma or (plats[0] if plats else "TikTok")
@@ -2401,6 +2538,8 @@ Responda APENAS com o JSON, sem explicações."""
                     clean = resultado_ia.strip().replace("```json","").replace("```","").strip()
                     trends_reais = _json.loads(clean)
                 except:
+                    pass
+                except:
                     trends_reais = []
         except Exception as e:
             print(f"[TRENDS] Tavily falhou: {e}")
@@ -2437,8 +2576,8 @@ class AvatarRequest(BaseModel):
 
 
 @app.post("/gerar-avatar")
-async def gerar_avatar(request: AvatarRequest):
-    usuario_id = "default"
+async def gerar_avatar(request: AvatarRequest, req: Request):
+    usuario_id = extrair_usuario_id(req)
     creditos = 20
     saldo = verificar_saldo(usuario_id, creditos)
     if saldo < creditos:
@@ -2449,12 +2588,14 @@ async def gerar_avatar(request: AvatarRequest):
 
 
 @app.get("/creditos/saldo")
-def creditos_saldo():
-    return {"ok":True,"saldo":get_saldo("default")}
+def creditos_saldo(request: Request):
+    uid = extrair_usuario_id(request)
+    return {"ok":True,"saldo":get_saldo(uid),"usuario_id":uid}
 
 @app.get("/creditos/historico")
-def creditos_hist():
-    return {"ok":True,"historico":historico_creditos("default")}
+def creditos_hist(request: Request):
+    uid = extrair_usuario_id(request)
+    return {"ok":True,"historico":historico_creditos(uid)}
 
 
 # ══════════════════════════════════════════════════════════════
@@ -2525,7 +2666,7 @@ async def criar_pagamento(request: PagamentoRequest):
 
 
 @app.get("/pagamento/sucesso")
-async def pagamento_sucesso(plano: str, usuario: str = "default", payment_id: str = ""):
+async def pagamento_sucesso(request: Request, plano: str, usuario: str = "", payment_id: str = ""):
     from fastapi.responses import RedirectResponse
     plano_cfg = PLANOS_CONFIG.get(plano)
     if plano_cfg:
@@ -2546,9 +2687,35 @@ async def pagamento_sucesso(plano: str, usuario: str = "default", payment_id: st
 
 @app.post("/webhook/mercadopago")
 async def webhook_mp(request: Request):
-    """Webhook do Mercado Pago para confirmação assíncrona"""
-    data = await request.json()
-    print(f"[MP Webhook] {data}")
+    """Webhook do Mercado Pago com validação de assinatura"""
+    # Validar assinatura MP — evita webhooks falsos
+    mp_secret = os.getenv("MP_WEBHOOK_SECRET", "")
+    raw_body = await request.body()
+    if mp_secret:
+        try:
+            sig = request.headers.get("x-signature", "")
+            req_id = request.headers.get("x-request-id", "")
+            parts = dict(p.split("=", 1) for p in sig.split(",") if "=" in p)
+            ts = parts.get("ts", "")
+            v1 = parts.get("v1", "")
+            if ts and v1:
+                manifest = f"id:{req_id};request-id:{req_id};ts:{ts};"
+                expected = hmac.new(
+                    mp_secret.encode(), manifest.encode(), hashlib.sha256
+                ).hexdigest()
+                if not hmac.compare_digest(expected, v1):
+                    print("[MP Webhook] ⚠️ Assinatura inválida!")
+                    raise HTTPException(401, "Assinatura inválida")
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"[MP Webhook] Erro validação: {e}")
+
+    try:
+        data = json.loads(raw_body)
+    except:
+        data = {}
+    print(f"[MP Webhook] type={data.get('type')} id={data.get('data',{}).get('id')}")
     tipo = data.get("type")
     if tipo == "payment":
         payment_id = data.get("data", {}).get("id")
@@ -2568,9 +2735,24 @@ async def webhook_mp(request: Request):
                             usuario_id, plano_id = parts
                             plano_cfg = PLANOS_CONFIG.get(plano_id)
                             if plano_cfg:
-                                creditos_atuais = get_creditos_db(usuario_id)
-                                set_creditos_db(usuario_id, creditos_atuais + plano_cfg["creditos"])
-                                print(f"[MP Webhook] ✅ Créditos adicionados: {usuario_id} +{plano_cfg['creditos']}")
+                                # IDEMPOTÊNCIA — evita processar o mesmo pagamento 2x
+                                user_data = get_usuario_db(usuario_id)
+                                pagamentos_processados = user_data.get("pagamentos_processados", [])
+
+                                if payment_id in pagamentos_processados:
+                                    print(f"[MP Webhook] ⚠️ Pagamento {payment_id} já processado — ignorando")
+                                else:
+                                    # Adicionar créditos
+                                    creditos_atuais = get_creditos_db(usuario_id)
+                                    set_creditos_db(usuario_id, creditos_atuais + plano_cfg["creditos"])
+
+                                    # Registrar pagamento como processado
+                                    pagamentos_processados.append(payment_id)
+                                    # Manter só os últimos 50 pagamentos
+                                    user_data["pagamentos_processados"] = pagamentos_processados[-50:]
+                                    salvar_usuario_db(usuario_id, user_data)
+
+                                    print(f"[MP Webhook] ✅ Créditos adicionados: {usuario_id} +{plano_cfg['creditos']} (payment={payment_id})")
     return {"ok": True}
 
 # ══════════════════════════════════════════════════════════════
@@ -2578,7 +2760,7 @@ async def webhook_mp(request: Request):
 # ══════════════════════════════════════════════════════════════
 
 @app.post("/upload-video")
-async def upload_video(video: UploadFile = File(...)):
+async def upload_video(video: UploadFile = File(...), request: Request = None):
     # Salva o arquivo localmente
     ext = os.path.splitext(video.filename or "video.mp4")[1] or ".mp4"
     filename = f"{uuid.uuid4().hex}{ext}"
@@ -2613,8 +2795,8 @@ async def upload_video(video: UploadFile = File(...)):
 # ══════════════════════════════════════════════════════════════
 
 @app.post("/editar-video")
-async def editar_video(request: EditarVideoRequest):
-    usuario_id = "default"
+async def editar_video(request: EditarVideoRequest, req: Request):
+    usuario_id = extrair_usuario_id(req)
     saldo = verificar_saldo(usuario_id, 10)
     if saldo < 10: raise HTTPException(402, "Créditos insuficientes. Precisa de 10.")
     
@@ -3243,8 +3425,10 @@ HASHTAGS: [hashtags]"""
 
 
 @app.post("/gerar-imagem-free")
-async def gerar_imagem_free(request: ImageRequest):
+@limiter.limit("20/minute")  # max 20 imagens por minuto por IP
+async def gerar_imagem_free(request: ImageRequest, req: Request):
     """Endpoint gratuito — Gemini Imagen 3 → HuggingFace → Pollinations."""
+    usuario_id = extrair_usuario_id(req, request)
     import urllib.parse, base64
     
     prompt_en = request.prompt + ", highly detailed, cinematic, 8k uhd, professional photography"
@@ -3325,7 +3509,7 @@ async def gerar_imagem_free(request: ImageRequest):
 # AIML — FEATURE 1: Imagem com FLUX/GPT Image via AIML
 # ══════════════════════════════════════════════════════════════
 @app.post("/aiml/gerar-imagem")
-async def aiml_imagem(data: dict):
+async def aiml_imagem(data: dict, request: Request = None):
     """Gera imagem via AIML — FLUX Schnell (grátis) ou GPT Image 1.5"""
     prompt  = data.get("prompt", "")
     modelo  = data.get("modelo", "flux/schnell")
@@ -3349,7 +3533,7 @@ async def aiml_imagem(data: dict):
 # AIML — FEATURE 2: Vídeo com Veo 3.1 / Kling / WAN via AIML
 # ══════════════════════════════════════════════════════════════
 @app.post("/aiml/gerar-video")
-async def aiml_video(data: dict):
+async def aiml_video(data: dict, request: Request = None):
     """
     Gera vídeo via AIML com polling automático.
     Modelos: google/veo-3.0-generate, kling-video/v1.5/standard/text-to-video
@@ -3376,7 +3560,7 @@ async def aiml_video(data: dict):
 # AIML — FEATURE 3: TTS — Narrar roteiro automaticamente
 # ══════════════════════════════════════════════════════════════
 @app.post("/aiml/tts")
-async def aiml_tts(data: dict):
+async def aiml_tts(data: dict, request: Request = None):
     """
     Converte texto em áudio via AIML (OpenAI TTS).
     Vozes: alloy, echo, fable, onyx, nova, shimmer
@@ -3459,8 +3643,8 @@ async def cerebro_insights(nicho: str):
 
 
 @app.get("/me")
-def get_me():
-    usuario_id = "default"
+def get_me(request: Request):
+    usuario_id = extrair_usuario_id(request)
     saldo = get_saldo(usuario_id)
     hist = historico_creditos(usuario_id, 5)
     return {
