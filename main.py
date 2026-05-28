@@ -294,40 +294,32 @@ _feedbacks: list = []
 # 🎬 CLOUDO MODELO v6.0 — ROTEIRISTA DE HOLLYWOOD
 # ══════════════════════════════════════════════════════════════
 
-VORTEX_CHAT = """Você é o VORTEX AI — a inteligência artificial mais completa e afiada do Brasil.
+VORTEX_CHAT = """Você é o VORTEX AI.
 
-Você é equivalente ao Claude, Gemini e ChatGPT — mas com personalidade própria, direto, sem frescura.
+Personalidade: direto, inteligente, sem enrolação. Como um amigo que sabe tudo — não como um assistente corporativo.
 
-CAPACIDADES COMPLETAS:
-• Qualquer área do conhecimento — história, ciência, medicina, direito, matemática, filosofia
-• Tecnologia e programação — código, debug, arquitetura, explicações técnicas
-• Negócios e finanças — estratégia, análise, modelos de negócio, investimentos
-• Marketing digital — copy, estratégia, crescimento, algoritmos
-• Criação de conteúdo — hooks, roteiros curtos, ideias, estratégia viral
-• Produtividade — resumos, reescritas, traduções, organização
-• Criatividade — histórias, e-mails, posts, apresentações
+EXEMPLOS DO TOM CERTO:
+❌ "Hoje é quarta-feira, 27 de maio de 2026. Um ótimo dia para criar conteúdo de terror, não é?"
+✅ "27 de maio, quarta. O que vamos criar?"
 
-PERSONALIDADE:
-• Fala como um amigo muito inteligente — sem robótica, sem frescura
-• Direto ao ponto — resposta curta quando a pergunta é simples
-• Detalhado quando o assunto exige profundidade
-• Honesto — se não souber, diz claramente em vez de inventar
-• Contextual — lembra o que foi dito na conversa e mantém coerência
+❌ "Certamente! Posso ajudá-lo com isso. Vou fornecer uma análise abrangente..."
+✅ "Sim. Aqui está:"
 
-REGRAS ABSOLUTAS:
-• NUNCA invente dados, estatísticas ou fatos sobre pessoas reais
-• NUNCA confunda "criar prompt de imagem" com "gerar imagem"
-• NUNCA diga que é Claude, Gemini, GPT ou outra IA — você é o VORTEX
-• Para roteiros longos completos → direcione para a aba Roteiro
-• Responda SEMPRE em português brasileiro natural
+❌ "Como posso ajudá-lo hoje?"
+✅ [responde direto o que foi perguntado]
 
-INTELIGÊNCIA CONTEXTUAL:
-• Se a pergunta for técnica → resposta técnica e precisa
-• Se a pergunta for casual → resposta descontraída e direta
-• Se pedir opinião → dê opinião real, não resposta diplomática genérica
-• Se pedir análise → seja cirúrgico, não genérico
+CAPACIDADES:
+Responde qualquer coisa — código, negócios, criação de conteúdo, análise, tradução, matemática, história, medicina, direito, filosofia. Sem restrição de tema.
 
-Você é o assistente que todo criador, empreendedor e profissional brasileiro merece ter."""
+REGRAS:
+• Resposta curta para pergunta simples. Longa só quando necessário.
+• Opinião real quando pedir opinião — não diplomacia
+• Se não souber → fala direto "não sei"
+• NUNCA diz que é Claude, GPT, Gemini — é o VORTEX
+• NUNCA diz "conhecimento até 2023" — isso é o ChatGPT
+• NUNCA começa com "Certamente!", "Claro!", "Ótima pergunta!"
+• Para roteiro completo → manda para a aba Roteiro
+• Sempre em português brasileiro"""
 
 # ══════════════════════════════════════════════════════════════════
 # MODO CRIADOR — Especialista em conteúdo viral e TikTok
@@ -653,12 +645,14 @@ def checar_limite(usuario_id: str = "default") -> dict:
     plano       = user_data.get("plano", "free")
     
     limites_por_plano = {
+        # Free — limite diário real para não abusar
         "free":           {"chat": 10,  "roteiro": 3},
-        "starter":        {"chat": 999, "roteiro": 999},
-        "creator":        {"chat": 999, "roteiro": 999},
-        "pro":            {"chat": 999, "roteiro": 999},
-        "elite":          {"chat": 999, "roteiro": 999},
-        "elite_lifetime": {"chat": 999, "roteiro": 999},
+        # Pagos — sem limite diário, só limitado pelos créditos do plano
+        "starter":        {"chat": 9999, "roteiro": 9999},
+        "creator":        {"chat": 9999, "roteiro": 9999},
+        "pro":            {"chat": 9999, "roteiro": 9999},
+        "elite":          {"chat": 9999, "roteiro": 9999},
+        "elite_lifetime": {"chat": 9999, "roteiro": 9999},
     }
     limite_plano = limites_por_plano.get(plano, {"chat": 10, "roteiro": 3})
     
@@ -1001,7 +995,7 @@ async def chat(data: ChatRequest, request: Request):
     usuario_id = extrair_usuario_id(request, data)
     lim = checar_limite(usuario_id)
     if lim["usado"] >= lim["limite"]:
-        msg_limite = "Limite de 10 chats/dia do plano Free atingido. Faça upgrade para chats ilimitados!" if lim["is_free"] else "Limite diário atingido."
+        msg_limite = "Limite de 10 chats/dia do plano Free atingido. Faça upgrade para chats ilimitados! 🚀" if lim["is_free"] else "Créditos insuficientes. Recarregue seu plano."
         raise HTTPException(429, msg_limite)
     _limite["usado"] = _limite.get("usado", 0) + 1
     saldo = verificar_saldo(usuario_id, 1)
@@ -1457,7 +1451,7 @@ async def gerar_roteiro(data: RoteiroIn, request: Request):
     # Verificar limite de roteiros do plano free
     lim = checar_limite(usuario_id)
     if lim["is_free"] and lim["roteiros_hoje"] >= lim["limite_roteiros"]:
-        raise HTTPException(429, f"Limite de {lim['limite_roteiros']} roteiros/dia atingido no plano Free. Faça upgrade para roteiros ilimitados!")
+        raise HTTPException(429, f"Você usou os {lim['limite_roteiros']} roteiros grátis de hoje. Faça upgrade para roteiros ilimitados! 🚀")
     
     # Incrementar contador de roteiros — persiste no arquivo
     incrementar_limite(usuario_id, "roteiro")
