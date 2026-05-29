@@ -241,8 +241,6 @@ def _carregar_limites() -> dict:
         with open(_LIMITE_FILE, "r") as f:
             return _json_limite.load(f)
     except:
-        pass
-    except:
         return {}
 
 def _salvar_limites(data: dict):
@@ -261,8 +259,6 @@ def _carregar_limites() -> dict:
         with open(_LIMITE_FILE, "r") as f:
             return _json_limite.load(f)
     except:
-        pass
-    except:
         return {}
 
 def _salvar_limites(data: dict):
@@ -280,8 +276,6 @@ def _carregar_limites() -> dict:
     try:
         with open(_LIMITE_FILE, "r") as f:
             return _json_limite.load(f)
-    except:
-        pass
     except:
         return {}
 
