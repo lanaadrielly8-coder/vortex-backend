@@ -43,6 +43,31 @@ def get_next_groq_key() -> str:
     key = keys[_groq_key_index % len(keys)]
     _groq_key_index += 1
     return key
+# ── OpenRouter — múltiplas keys em rotação ───────────────────
+OPENROUTER_API_KEY    = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_API_KEY_2  = os.getenv("OPENROUTER_API_KEY_2", "")
+OPENROUTER_API_KEY_3  = os.getenv("OPENROUTER_API_KEY_3", "")
+OPENROUTER_API_KEY_4  = os.getenv("OPENROUTER_API_KEY_4", "")
+OPENROUTER_API_KEY_5  = os.getenv("OPENROUTER_API_KEY_5", "")
+OPENROUTER_API_KEY_6  = os.getenv("OPENROUTER_API_KEY_6", "")
+
+def get_openrouter_keys() -> list:
+    keys = [k for k in [
+        OPENROUTER_API_KEY,   OPENROUTER_API_KEY_2, OPENROUTER_API_KEY_3,
+        OPENROUTER_API_KEY_4, OPENROUTER_API_KEY_5, OPENROUTER_API_KEY_6,
+    ] if k]
+    return list(dict.fromkeys(keys))
+
+_or_idx = 0
+
+def get_next_openrouter_key() -> str:
+    global _or_idx
+    keys = get_openrouter_keys()
+    if not keys: return ""
+    key = keys[_or_idx % len(keys)]
+    _or_idx += 1
+    return key
+
 GEMINI_API_KEY        = os.getenv("GEMINI_API_KEY", "")
 ANTHROPIC_API_KEY     = os.getenv("ANTHROPIC_API_KEY", "")
 
@@ -1158,15 +1183,69 @@ async def chamar_together(messages: list, system: str = "", modelo: str = "meta-
 # ══════════════════════════════════════════════════════════════
 # CASCATA DEDICADA PARA CHAT — Melhor qualidade, sem alucinação
 # ══════════════════════════════════════════════════════════════
+async def chamar_huggingface_chat(messages: list, system: str = "", modelo: str = "meta-llama/Llama-3.3-70B-Instruct", max_tokens: int = 1500) -> str:
+    """Chama modelos de chat via Hugging Face Inference API."""
+    import os as _os, httpx as _httpx
+    key = _os.getenv("HF_API_KEY", "")
+    if not key:
+        raise Exception("HF_API_KEY não configurada")
+    
+    # Montar prompt no formato correto
+    msgs = []
+    if system:
+        msgs.append({"role": "system", "content": system})
+    msgs.extend(messages)
+    
+    async with _httpx.AsyncClient(timeout=_httpx.Timeout(30.0)) as client:
+        r = await client.post(
+            f"https://api-inference.huggingface.co/models/{modelo}/v1/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"model": modelo, "messages": msgs, "max_tokens": max_tokens, "stream": False}
+        )
+        if not r.is_success:
+            raise Exception(f"HF erro {r.status_code}: {r.text[:100]}")
+        d = r.json()
+        return d["choices"][0]["message"]["content"]
+
+
 async def gerar_texto_chat(messages: list, system: str = "", max_tokens: int = 1500) -> tuple[str, str]:
     """
-    Cascata COMPLETA para chat — 39 modelos OpenRouter + Groq x6 + Gemini = zero downtime.
+    Cascata COMPLETA para chat — HF + 39 modelos OpenRouter + Groq + Gemini = zero downtime.
     Ordem: melhores primeiro, menores depois, nunca cai.
     """
+    
+    # ── TIER 0: Hugging Face — modelos equivalentes ao Claude e GPT ────
+    HF_MODELS = [
+        "meta-llama/Llama-3.3-70B-Instruct",        # Equivalente ao GPT-4o
+        "Qwen/Qwen2.5-72B-Instruct",                # Melhor para PT-BR
+        "mistralai/Mistral-7B-Instruct-v0.3",        # Rápido e preciso
+        "microsoft/Phi-4",                           # Compacto e inteligente
+        "google/gemma-2-27b-it",                     # Google, muito bom
+        "meta-llama/Llama-3.2-11B-Vision-Instruct",  # Suporta imagens
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B", # Raciocínio profundo
+        "Qwen/QwQ-32B",                              # Reasoning model
+    ]
+    
+    import os as _os
+    hf_key = _os.getenv("HF_API_KEY", "")
+    if hf_key:
+        for modelo_hf in HF_MODELS:
+            try:
+                texto = await chamar_huggingface_chat(messages, system, modelo_hf, max_tokens)
+                if texto and len(texto) > 10:
+                    print(f"[CHAT] ✅ HF {modelo_hf.split('/')[-1]} — {len(texto)} chars")
+                    return texto, f"hf_{modelo_hf.split('/')[-1]}"
+            except Exception as e:
+                print(f"[CHAT] ⚠️ HF {modelo_hf.split('/')[-1]} falhou: {str(e)[:50]}")
+                continue
+
     CHAT_MODELS = [
-        # ── TIER 1: Melhores modelos para conversação ──────────────────
+        # ── TIER 1: Melhores modelos 2026 ──────────────────────────────
         ("deepseek_v3",       "deepseek/deepseek-chat-v3-0324:free"),       # Melhor custo-benefício
         ("qwen3_235b",        "qwen/qwen3-235b-a22b:free"),                 # Enorme, muito preciso
+        ("gemma4_27b",        "google/gemma-4-27b-it:free"),                # Gemma 4 — novo 2026, 256K ctx
+        ("llama4_maverick",   "meta-llama/llama-4-maverick:free"),          # Llama 4 — Meta 2026
+        ("llama4_scout",      "meta-llama/llama-4-scout:free"),             # Llama 4 Scout
         ("llama33_70b",       "meta-llama/llama-3.3-70b-instruct:free"),    # Ótimo para PT-BR
         ("qwen3_30b",         "qwen/qwen3-30b-a3b:free"),                   # Rápido e preciso
         ("deepseek_r1",       "deepseek/deepseek-r1:free"),                 # Raciocínio profundo
@@ -1179,7 +1258,8 @@ async def gerar_texto_chat(messages: list, system: str = "", max_tokens: int = 1
         ("qwen3_8b",          "qwen/qwen3-8b:free"),
         ("qwen25_72b",        "qwen/qwen-2.5-72b-instruct:free"),
         ("qwen25_7b",         "qwen/qwen-2.5-7b-instruct:free"),
-        # ── TIER 3: Google e Microsoft ─────────────────────────────────
+        # ── TIER 3: Google família Gemma ───────────────────────────────
+        ("gemma4_4b",         "google/gemma-4-4b-it:free"),                 # Gemma 4 pequeno
         ("gemma3_27b",        "google/gemma-3-27b-it:free"),
         ("gemma3_12b",        "google/gemma-3-12b-it:free"),
         ("gemma3_4b",         "google/gemma-3-4b-it:free"),
@@ -1248,28 +1328,237 @@ async def gerar_texto_chat(messages: list, system: str = "", max_tokens: int = 1
 # ══════════════════════════════════════════════════════════════
 # CASCATA DEDICADA PARA ROTEIRO — Modelos mais criativos e precisos
 # ══════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════
+# GEMMA 4 VISION — análise de imagem grátis via HuggingFace
+# Suporta: OCR, detecção de objetos, análise de conteúdo
+# ══════════════════════════════════════════════════════════════
+async def gemma4_analisar_imagem(imagem_url: str, pergunta: str = "O que você vê nessa imagem?") -> str:
+    """
+    Analisa imagem com Gemma 4 via HuggingFace Inference API.
+    Gratuito com HF_API_KEY.
+    Casos de uso: analisar thumbnail, identificar objetos, ler texto em imagem.
+    """
+    import base64 as _b64
+
+    key = os.getenv("HF_API_KEY", "")
+    if not key:
+        raise Exception("HF_API_KEY não configurada")
+
+    # Baixar imagem e converter para base64
+    async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+        # Baixar imagem
+        try:
+            img_resp = await client.get(imagem_url)
+            img_b64 = _b64.b64encode(img_resp.content).decode()
+            media_type = img_resp.headers.get("content-type", "image/jpeg").split(";")[0]
+        except:
+            img_b64 = None
+
+        payload = {
+            "model": "google/gemma-4-27b-it",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{media_type};base64,{img_b64}"} if img_b64 else {"url": imagem_url}
+                        },
+                        {"type": "text", "text": pergunta}
+                    ]
+                }
+            ],
+            "max_tokens": 500,
+        }
+
+        r = await client.post(
+            "https://api-inference.huggingface.co/v1/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json=payload,
+        )
+
+        if not r.is_success:
+            raise Exception(f"Gemma4 Vision {r.status_code}: {r.text[:200]}")
+
+        d = r.json()
+        return d["choices"][0]["message"]["content"]
+
+
+async def chamar_aiml(messages: list, system: str = "", modelo: str = "gpt-4o", max_tokens: int = 2000) -> str:
+    """Chama AIML API — acesso a Claude, GPT, Gemini em uma key."""
+    key = os.getenv("AIML_API_KEY", "")
+    if not key:
+        raise Exception("AIML_API_KEY não configurada")
+    
+    msgs = []
+    if system:
+        msgs.append({"role": "system", "content": system})
+    msgs.extend(messages)
+    
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+        r = await client.post(
+            "https://api.aimlapi.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"model": modelo, "messages": msgs, "max_tokens": max_tokens, "temperature": 0.85}
+        )
+        if not r.is_success:
+            raise Exception(f"AIML {r.status_code}: {r.text[:100]}")
+        d = r.json()
+        return d["choices"][0]["message"]["content"]
+
+
+# ══════════════════════════════════════════════════════════════
+# AIML — FEATURE 1: GERAÇÃO DE IMAGEM
+# FLUX Schnell (grátis) + GPT Image 1.5 + Nano Banana Pro
+# ══════════════════════════════════════════════════════════════
+async def aiml_gerar_imagem(prompt: str, modelo: str = "flux/schnell", tamanho: str = "1024x1024") -> str:
+    """
+    Gera imagem via AIML API.
+    Modelos grátis: flux/schnell, flux/dev
+    Modelos pagos: flux-pro/v1.1, gpt-image-1.5, google/nano-banana-pro
+    """
+    key = os.getenv("AIML_API_KEY", "")
+    if not key:
+        raise Exception("AIML_API_KEY não configurada")
+
+    # Mapear tamanho para width/height
+    sizes = {
+        "1024x1024": (1024, 1024),
+        "1024x1792": (1024, 1792),  # 9:16 portrait — ideal TikTok
+        "1792x1024": (1792, 1024),  # 16:9 landscape
+        "512x512":   (512, 512),
+    }
+    w, h = sizes.get(tamanho, (1024, 1024))
+
+    async with httpx.AsyncClient(timeout=httpx.Timeout(90.0)) as client:
+        r = await client.post(
+            "https://api.aimlapi.com/v1/images/generations",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"model": modelo, "prompt": prompt, "n": 1, "size": f"{w}x{h}"}
+        )
+        if not r.is_success:
+            raise Exception(f"AIML Imagem {r.status_code}: {r.text[:200]}")
+        d = r.json()
+        # Retorna URL da imagem
+        if d.get("data") and len(d["data"]) > 0:
+            return d["data"][0].get("url") or d["data"][0].get("b64_json", "")
+        raise Exception("AIML não retornou imagem")
+
+
+# ══════════════════════════════════════════════════════════════
+# AIML — FEATURE 2: GERAÇÃO DE VÍDEO
+# Veo 3.1, Kling, WAN via AIML — polling automático
+# ══════════════════════════════════════════════════════════════
+async def aiml_gerar_video(prompt: str, modelo: str = "google/veo-3.0-generate", imagem_url: str = "") -> str:
+    """
+    Gera vídeo via AIML API com polling automático.
+    Modelos disponíveis:
+    - google/veo-3.0-generate    (texto → vídeo)
+    - google/veo-3.1-i2v         (imagem → vídeo)
+    - kling-video/v1.5/standard/text-to-video
+    - wan-video/wan2.1-t2v-480p
+    """
+    key = os.getenv("AIML_API_KEY", "")
+    if not key:
+        raise Exception("AIML_API_KEY não configurada")
+
+    payload = {"model": modelo, "prompt": prompt}
+    if imagem_url and "i2v" in modelo:
+        payload["image_url"] = imagem_url
+
+    async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+        # 1. Criar task de geração
+        r = await client.post(
+            "https://api.aimlapi.com/v2/video/generations",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json=payload
+        )
+        if not r.is_success:
+            raise Exception(f"AIML Vídeo {r.status_code}: {r.text[:200]}")
+        
+        d = r.json()
+        gen_id = d.get("id") or d.get("generation_id")
+        if not gen_id:
+            # Pode já ter retornado o vídeo direto
+            if d.get("video", {}).get("url"):
+                return d["video"]["url"]
+            raise Exception(f"AIML não retornou generation_id: {d}")
+        
+        print(f"[AIML-Video] Task criada: {gen_id}")
+        
+        # 2. Polling — aguardar até 3 minutos
+        import asyncio
+        for tentativa in range(18):  # 18 × 10s = 3 min
+            await asyncio.sleep(10)
+            r2 = await client.get(
+                f"https://api.aimlapi.com/v2/video/generations?generation_id={gen_id}",
+                headers={"Authorization": f"Bearer {key}"}
+            )
+            if r2.is_success:
+                d2 = r2.json()
+                status = d2.get("status", "")
+                print(f"[AIML-Video] Status: {status} (tentativa {tentativa+1})")
+                if status == "completed":
+                    url = d2.get("video", {}).get("url") or d2.get("url", "")
+                    if url:
+                        return url
+                elif status in ["failed", "error"]:
+                    raise Exception(f"AIML vídeo falhou: {d2.get('error', {})}")
+        
+        raise Exception("AIML vídeo timeout — tente novamente em alguns minutos")
+
+
+# ══════════════════════════════════════════════════════════════
+# AIML — FEATURE 3: TEXT-TO-SPEECH
+# OpenAI TTS via AIML — narrar roteiros automaticamente
+# ══════════════════════════════════════════════════════════════
+async def aiml_text_to_speech(texto: str, voz: str = "nova", modelo: str = "tts-1") -> bytes:
+    """
+    Gera áudio via AIML API (OpenAI TTS).
+    Vozes disponíveis: alloy, echo, fable, onyx, nova, shimmer
+    Modelos: tts-1 (rápido), tts-1-hd (qualidade)
+    """
+    key = os.getenv("AIML_API_KEY", "")
+    if not key:
+        raise Exception("AIML_API_KEY não configurada")
+
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+        r = await client.post(
+            "https://api.aimlapi.com/v1/audio/speech",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"model": modelo, "input": texto[:4096], "voice": voz, "response_format": "mp3"}
+        )
+        if not r.is_success:
+            raise Exception(f"AIML TTS {r.status_code}: {r.text[:200]}")
+        return r.content  # bytes do MP3
+
+
 async def gerar_texto_roteiro(messages: list, system: str = "", max_tokens: int = 2000) -> tuple[str, str]:
     """
     Cascata dedicada para roteiros — prioriza modelos mais criativos e menos alucinatórios.
     Ordem: DeepSeek V3 → Qwen3 235b → Llama 3.3 70b → DeepSeek R1 → Gemini → Groq
     """
     ROTEIRO_MODELS = [
-        # DeepSeek V3 — melhor custo-benefício, muito criativo e preciso
+        # DeepSeek V3 — melhor para roteiro criativo
         ("deepseek_v3",     "deepseek/deepseek-chat-v3-0324:free"),
-        # Qwen3 235b — enorme, muito bom para narrativa criativa
+        # Qwen3 235b — enorme, narrativa criativa
         ("qwen3_235b",      "qwen/qwen3-235b-a22b:free"),
-        # Llama 3.3 70b — ótimo para PT-BR, narrativa fluída
+        # Llama 3.3 70b — ótimo PT-BR
         ("llama33_70b",     "meta-llama/llama-3.3-70b-instruct:free"),
-        # DeepSeek R1 — raciocínio, bom para estrutura
+        # DeepSeek R1 — raciocínio estruturado
         ("deepseek_r1",     "deepseek/deepseek-r1:free"),
-        # QwQ 32b — reasoning model, bom para roteiros estruturados
+        # QwQ 32b — estrutura de roteiro
         ("qwq_32b",         "qwen/qwq-32b:free"),
-        # Llama 405b — modelo enorme, muito criativo
+        # Llama 405b — muito criativo
         ("llama31_405b",    "meta-llama/llama-3.1-405b:free"),
-        # Gemma 3 27b — bom para texto criativo
+        # Gemma 3 27b — criativo
         ("gemma3_27b",      "google/gemma-3-27b-it:free"),
-        # Hermes 3 405b — treinado para criatividade narrativa
+        # Hermes 3 405b — narrativa
         ("hermes3_405b",    "nousresearch/hermes-3-llama-3.1-405b:free"),
+        # Llama Scout — novo modelo Meta 2025
+        ("llama4_scout",    "meta-llama/llama-4-scout:free"),
+        # Llama Maverick — criativo
+        ("llama4_maverick", "meta-llama/llama-4-maverick:free"),
     ]
     
     erros = []
@@ -1284,31 +1573,67 @@ async def gerar_texto_roteiro(messages: list, system: str = "", max_tokens: int 
             print(f"[ROTEIRO] ⚠️ {nome} falhou — próximo...")
             continue
     
-    # Fallback para Gemini
+    # Fallback 1 — Groq Llama 3.3 (rápido e bom para PT-BR)
     try:
-        texto = await chamar_gemini(messages, system, "gemini-1.5-flash", max_tokens)
-        return texto, "gemini_roteiro"
-    except:
-        pass
-    
-    # Último recurso — Groq (menos preciso mas funciona)
-    try:
-        texto = await chamar_groq(messages, system, None, max_tokens)
-        return texto, "groq_roteiro_fallback"
+        texto = await chamar_groq(messages, system, "llama-3.3-70b-versatile", max_tokens)
+        if texto and len(texto) > 200:
+            print("[ROTEIRO] ✅ Groq fallback funcionou")
+            return texto, "groq_llama33"
     except Exception as e:
-        raise HTTPException(503, f"Todos os modelos de roteiro falharam: {erros[:3]}")
+        print(f"[ROTEIRO] Groq falhou: {e}")
+
+    # Fallback 2 — Gemini 2.0 Flash
+    try:
+        texto = await chamar_gemini(messages, system, "gemini-2.0-flash", max_tokens)
+        if texto and len(texto) > 200:
+            print("[ROTEIRO] ✅ Gemini fallback funcionou")
+            return texto, "gemini_flash"
+    except Exception as e:
+        print(f"[ROTEIRO] Gemini falhou: {e}")
+
+    raise HTTPException(503, f"Todos os modelos falharam. Tente em alguns minutos. Erros: {erros[:3]}")
 
 
-async def chamar_openrouter(messages: list, system: str = "", modelo: str = "deepseek/deepseek-chat", max_tokens: int = 2000) -> str:
-    if not OPENROUTER_API_KEY:
-        raise ValueError("OPENROUTER_API_KEY não configurada")
+async def chamar_openrouter(messages: list, system: str = "", modelo: str = "deepseek/deepseek-chat-v3-0324:free", max_tokens: int = 2000) -> str:
+    """
+    Chama OpenRouter com rotação automática de keys.
+    Com 6 keys = ~1200 req/dia grátis nos melhores modelos.
+    Se uma key falhar por rate limit, tenta a próxima automaticamente.
+    """
+    keys = get_openrouter_keys()
+    if not keys:
+        raise ValueError("Nenhuma OPENROUTER_API_KEY configurada")
+    
     msgs = ([{"role":"system","content":system}] if system else []) + messages
-    async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
-        r = await client.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"},
-            json={"model": modelo, "messages": msgs, "max_tokens": max_tokens}
-        )
-        if r.status_code != 200:
-            raise ValueError(f"OpenRouter erro {r.status_code}: {r.text[:200]}")
-        return r.json()["choices"][0]["message"]["content"]
+    
+    # Tenta cada key disponível
+    erros = []
+    for tentativa in range(min(len(keys), 3)):
+        key = get_next_openrouter_key()
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+                r = await client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {key}",
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": "https://vortex-backend1.onrender.com",
+                        "X-Title": "Vortex AI"
+                    },
+                    json={"model": modelo, "messages": msgs, "max_tokens": max_tokens}
+                )
+                if r.status_code == 429:
+                    erros.append(f"key{tentativa+1}: rate limit")
+                    print(f"[OR] Key {tentativa+1} no limite — tentando próxima...")
+                    continue
+                if r.status_code != 200:
+                    erros.append(f"key{tentativa+1}: HTTP {r.status_code}")
+                    continue
+                resultado = r.json()["choices"][0]["message"]["content"]
+                print(f"[OR] ✅ {modelo} via key{tentativa+1}")
+                return resultado
+        except Exception as e:
+            erros.append(f"key{tentativa+1}: {str(e)[:50]}")
+            continue
+    
+    raise ValueError(f"OpenRouter falhou em todas as keys: {erros}")

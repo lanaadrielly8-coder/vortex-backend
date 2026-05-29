@@ -69,6 +69,10 @@ from providers import (
     aiml_gerar_imagem,
     aiml_gerar_video,
     aiml_text_to_speech,
+    # Imagem grátis — cascata completa
+    gerar_imagem_hf,
+    gerar_imagem_gemini,
+    gerar_imagem_pollinations,
     # Gemma 4 Vision — análise de imagem grátis
     gemma4_analisar_imagem,
     GROQ_API_KEY,
@@ -3477,32 +3481,43 @@ async def gerar_imagem_free(request: ImageRequest, req: Request):
     modelo_req = request.modelo or "hf_flux"
     hf_key = os.getenv("HF_API_KEY", "")
 
-    # Roteamento por modelo escolhido
+    # Cascata de imagem grátis — tenta em ordem até funcionar
     print(f"[IMG-FREE] modelo={modelo_req} hf_key={bool(hf_key)}")
-    
-    if modelo_req == "hf_flux":
-        if not hf_key:
-            print("[HF] sem key — usando Gemini")
-        else:
-            try:
-                url = await gerar_imagem_hf(prompt_en)
-                return {"ok": True, "imagem": url, "modelo": "🤗 HuggingFace FLUX Schnell", "prompt_en": prompt_en}
-            except Exception as e:
-                print(f"[HF] falhou: {e} — tentando Gemini")
+    erros_img = []
 
-    elif modelo_req == "gemini":
+    # 1. HuggingFace FLUX (melhor qualidade grátis)
+    if modelo_req in ("hf_flux", "") and hf_key:
         try:
-            url = await gerar_imagem_gemini(prompt_en)
-            return {"ok": True, "imagem": url, "modelo": "🍌 Nano Banana Pro (Google)", "prompt_en": prompt_en}
+            url = await gerar_imagem_hf(prompt_en)
+            return {"ok": True, "imagem": url, "modelo": "🤗 FLUX Schnell", "prompt_en": prompt_en}
         except Exception as e:
-            print(f"[Gemini] falhou: {e} — tentando Pollinations")
-            # Se Gemini falhou, vai direto pro Pollinations
-            import urllib.parse as _ul
-            p = _ul.quote(prompt_en[:400])
-            url = f"https://image.pollinations.ai/prompt/{p}?width=1280&height=1280&model=flux-pro&nologo=true&enhance=true"
-            return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations (fallback Gemini)", "prompt_en": prompt_en}
+            erros_img.append(f"HF: {e}")
+            print(f"[HF] falhou: {e}")
 
-    elif modelo_req == "pollinations":
+    # 2. Gemini Image (grátis com nossa key)
+    try:
+        url = await gerar_imagem_gemini(prompt_en)
+        return {"ok": True, "imagem": url, "modelo": "✨ Gemini Image", "prompt_en": prompt_en}
+    except Exception as e:
+        erros_img.append(f"Gemini: {e}")
+        print(f"[Gemini] falhou: {e}")
+
+    # 3. Pollinations (sempre funciona, ilimitado)
+    try:
+        url = await gerar_imagem_pollinations(prompt_en)
+        return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations", "prompt_en": prompt_en}
+    except Exception as e:
+        erros_img.append(f"Pollinations: {e}")
+        print(f"[Pollinations] falhou: {e}")
+
+    # Fallback final — Pollinations URL direta
+    import urllib.parse as _ul
+    p = _ul.quote(prompt_en[:400])
+    url = f"https://image.pollinations.ai/prompt/{p}?width=1280&height=1280&model=flux-pro&nologo=true&enhance=true"
+    return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations", "prompt_en": prompt_en}
+
+    # Outros modelos específicos
+    if modelo_req == "pollinations":
         import urllib.parse as _ul
         # Enriquecer prompt para máxima qualidade
         prompt_rich = prompt_en + ", masterpiece, ultra detailed, professional photography, 8k uhd, sharp focus, perfect composition, award winning, trending on artstation"
