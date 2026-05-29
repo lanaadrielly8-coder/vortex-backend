@@ -838,9 +838,16 @@ async def auth_google_callback(code: str, request: Request):
         nome = user_info.get("name", "")
         foto = user_info.get("picture", "")
         # Salva/atualiza usuário no banco
-        usuario = get_usuario_db(usuario_id)
+        # Buscar usuário existente ou criar novo
+        usuario = get_usuario_db(usuario_id) or {}
         if not usuario.get("creditos"):
-            usuario["creditos"] = 50  # créditos grátis para novo usuário
+            usuario["creditos"] = 50
+        # Sempre atualizar dados do Google
+        usuario["email"] = email
+        usuario["nome"]  = nome
+        usuario["foto"]  = foto
+        if not usuario.get("plano"):
+            usuario["plano"] = "free"
         salvar_usuario_db(usuario_id, {
             "email": email, "nome": nome, "foto": foto,
             "ultimo_login": datetime.now().isoformat(),
