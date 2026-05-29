@@ -69,6 +69,8 @@ from providers import (
     aiml_gerar_imagem,
     aiml_gerar_video,
     aiml_text_to_speech,
+    # Gemma 4 Vision — análise de imagem grátis
+    gemma4_analisar_imagem,
     GROQ_API_KEY,
     GEMINI_API_KEY,
     LEONARDO_API_KEY,
@@ -2505,22 +2507,28 @@ async def tendencias(request: Request, nicho: str = "", plataforma: str = "", pa
             
             if resultado_tavily:
                 # Processar com IA para extrair trends estruturadas
-                prompt_trends = f"""Analise essas informações sobre tendências de {nicho_final} no {ctx_pais['nome']}:
+                prompt_trends = f"""Você é um analista de tendências virais do Brasil.
 
+Com base nos dados abaixo, extraia 5 tendências REAIS e ESPECÍFICAS de {nicho_final} no {ctx_pais['nome']}.
+
+DADOS:
 {resultado_tavily[:1500]}
 
-Extraia exatamente 5 tendências virais ATUAIS em formato JSON:
+REGRAS OBRIGATÓRIAS:
+- Use APENAS informações dos dados acima — não invente
+- Cada tendência deve ter um nome ESPECÍFICO (ex: "BBB 2026", "Free Fire novo personagem") não genérico ("Conteúdo viral")
+- Se não houver dados suficientes, reduza para 3 tendências reais em vez de inventar 5
+
+Responda APENAS com JSON:
 [
   {{
-    "titulo": "Nome da tendência",
-    "descricao": "O que é e por que está viralizando",
-    "como_usar": "Como o criador de {nicho_final} pode usar isso",
+    "titulo": "Nome específico e real da tendência",
+    "descricao": "Por que está viralizando agora — baseado nos dados",
+    "como_usar": "Como creator de {nicho_final} pode usar",
     "potencial": "alto/médio/baixo",
     "hashtags": ["#tag1", "#tag2", "#tag3"]
   }}
-]
-
-Responda APENAS com o JSON, sem explicações."""
+]"""
 
                 msgs = [{"role": "user", "content": prompt_trends}]
                 resultado_ia, _ = await gerar_texto(msgs, 
@@ -2895,50 +2903,81 @@ async def criar_pagamento(request: PagamentoRequest):
 # ── Tavily Web Search — busca fatos reais para roteiros ──────────────────────
 async def buscar_google_trends(nicho: str = "", pais: str = "BR") -> list:
     """
-    Busca tendências reais do Google Trends — 100% gratuito, sem key.
-    Retorna lista de termos em alta agora.
+    Busca tendências reais — múltiplas fontes com fallback.
+    1. Google Trends RSS (grátis)
+    2. Google Trends API alternativa
+    3. Tavily com query específica
     """
-    import urllib.parse, json as _json
-    
-    # Mapear nicho para termo de busca
-    NICHOS_MAP = {
-        "terror": "terror psicológico,true crime,horror",
-        "gaming": "gameplay,free fire,valorant,minecraft",
-        "finanças": "renda extra,investimento,bitcoin,dinheiro",
-        "fitness": "academia,dieta,perda de peso,treino",
-        "anime": "anime,one piece,dragon ball,naruto",
-        "lifestyle": "rotina,produtividade,dia a dia",
-        "tech": "inteligência artificial,celular,tecnologia",
-        "comédia": "memes,humor,viral",
-    }
-    
-    termos = NICHOS_MAP.get(nicho.lower(), nicho or "viral,tendência")
-    
+    import re as _re
+
+    trends = []
+
+    # FONTE 1: Google Trends RSS oficial
     try:
-        # Google Trends API não-oficial via RSS
         async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
-            # Trending searches do Brasil
             r = await client.get(
                 f"https://trends.google.com/trends/trendingsearches/daily/rss?geo={pais}",
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "Accept": "application/rss+xml, application/xml, text/xml",
+                    "Accept-Language": "pt-BR,pt;q=0.9",
+                },
+            )
+            if r.is_success and "<title>" in r.text:
+                items = _re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', r.text)
+                items = [i.strip() for i in items if i and "Google" not in i and len(i) > 2][:10]
+                if items:
+                    print(f"[TRENDS] ✅ Google RSS: {len(items)} trends")
+                    return items
+    except Exception as e:
+        print(f"[TRENDS] RSS falhou: {e}")
+
+    # FONTE 2: Google Trends via endpoint alternativo
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
+            r = await client.get(
+                "https://trends.google.com/trends/api/dailytrends",
+                params={"hl": "pt-BR", "tz": "-180", "geo": pais, "ns": "15"},
                 headers={"User-Agent": "Mozilla/5.0"},
             )
-            
-            if not r.is_success:
-                print(f"[TRENDS-G] erro {r.status_code}")
-                return []
-            
-            # Parsear RSS
-            import re as _re
-            items = _re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', r.text)
-            # Remover o primeiro item que é o título do feed
-            items = [i for i in items if i and "Google" not in i][:10]
-            
-            print(f"[TRENDS-G] ✅ {len(items)} trends do Google Brasil")
-            return items
-            
+            if r.is_success:
+                # Remove o prefix de segurança do Google
+                text = r.text
+                if text.startswith(")]}',"):
+                    text = text[5:]
+                import json as _json2
+                data = _json2.loads(text)
+                items = []
+                for day in data.get("default", {}).get("trendingSearchesDays", [])[:1]:
+                    for search in day.get("trendingSearches", [])[:10]:
+                        title = search.get("title", {}).get("query", "")
+                        if title:
+                            items.append(title)
+                if items:
+                    print(f"[TRENDS] ✅ Google API: {len(items)} trends")
+                    return items
     except Exception as e:
-        print(f"[TRENDS-G] falhou: {e}")
-        return []
+        print(f"[TRENDS] API falhou: {e}")
+
+    # FONTE 3: Tavily com query específica para trends reais
+    if TAVILY_API_KEY:
+        try:
+            from datetime import datetime
+            hoje = datetime.now().strftime("%d/%m/%Y")
+            query = f"o que está viral no Brasil hoje {hoje} TikTok trending"
+            resultado = await buscar_tavily(query, max_results=5)
+            if resultado:
+                # Extrair nomes específicos do resultado
+                nomes = _re.findall(r'"([^"]{5,50})"', resultado)
+                nomes = [n for n in nomes if not any(w in n.lower() for w in ["http","www","com","br","the","and"])][:8]
+                if nomes:
+                    print(f"[TRENDS] ✅ Tavily: {len(nomes)} trends")
+                    return nomes
+        except Exception as e:
+            print(f"[TRENDS] Tavily falhou: {e}")
+
+    print("[TRENDS] ⚠️ Todas as fontes falharam")
+    return []
 
 
 async def buscar_trends_completo(nicho: str, plataforma: str, pais: str = "BR") -> dict:
@@ -3497,6 +3536,284 @@ async def gerar_imagem_free(request: ImageRequest, req: Request):
     url = f"https://image.pollinations.ai/prompt/{prompt_safe}?width=1280&height=1280&model=flux-pro&nologo=true&enhance=true&seed={hash(prompt_en)%99999}"
     return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations Flux Pro", "prompt_en": prompt_en}
 
+
+
+# ══════════════════════════════════════════════════════════════
+# VORTEX STUDIO — Pipeline completo de vídeo
+# Roteiro → Voz → Imagem → Vídeo = Vídeo único do Vortex
+# ══════════════════════════════════════════════════════════════
+
+class VortexStudioRequest(BaseModel):
+    tema:       str
+    nicho:      str = "geral"
+    estilo:     str = "cinematografico"  # cinematografico, viral, educacional
+    voz_id:     str = "default"          # ID da voz clonada
+    modelo_video: str = "kling3_std"     # modelo de vídeo a usar
+    duracao:    int = 30                 # segundos
+
+@app.post("/vortex-studio/criar")
+@limiter.limit("3/minute")
+async def vortex_studio(data: VortexStudioRequest, request: Request):
+    """
+    Vortex Studio — Pipeline completo:
+    1. Claude Sonnet gera roteiro + prompt visual
+    2. ElevenLabs gera narração
+    3. FLUX gera imagem base com estilo Vortex
+    4. Kling/WAN anima a imagem com a voz
+
+    Resultado: vídeo único com identidade visual Vortex.
+    """
+    usuario_id = extrair_usuario_id(request)
+
+    # Verificar plano — só Creator+
+    from creditos import get_usuario
+    user_data = get_usuario(usuario_id)
+    plano = user_data.get("plano", "free")
+    planos_permitidos = ["creator", "pro", "elite", "elite_lifetime"]
+    if plano not in planos_permitidos:
+        raise HTTPException(403, "Vortex Studio disponível a partir do plano Creator.")
+
+    # Calcular custo total
+    CUSTO_STUDIO = {
+        "wan22_fast":  60,
+        "kling3_std":  90,
+        "kling3_pro":  150,
+        "luma_ray3":   155,
+        "veo31_fast":  185,
+    }
+    creditos_necessarios = CUSTO_STUDIO.get(data.modelo_video, 90)
+
+    from creditos import verificar_saldo, debitar_creditos
+    if verificar_saldo(usuario_id, creditos_necessarios) < creditos_necessarios:
+        raise HTTPException(402, f"Créditos insuficientes. Vortex Studio requer {creditos_necessarios} créditos.")
+
+    resultado = {
+        "status": "processando",
+        "etapas": {
+            "roteiro": {"status": "pendente", "resultado": None},
+            "voz":     {"status": "pendente", "resultado": None},
+            "imagem":  {"status": "pendente", "resultado": None},
+            "video":   {"status": "pendente", "resultado": None},
+        },
+        "video_final": None,
+        "creditos_usados": creditos_necessarios,
+    }
+
+    # ESTILOS VISUAIS DO VORTEX
+    ESTILOS_VORTEX = {
+        "cinematografico": "cinematic dark atmosphere, dramatic lighting, film grain, 4K ultra realistic, moody shadows, professional color grading",
+        "viral":           "vibrant colors, high contrast, trending aesthetic, eye-catching composition, social media optimized, bold visuals",
+        "educacional":     "clean modern design, bright lighting, professional studio look, clear and engaging visuals",
+        "terror":          "dark horror atmosphere, unsettling shadows, eerie fog, dramatic tension, psychological horror aesthetic",
+        "gaming":          "neon RGB lighting, dynamic composition, gaming aesthetic, high energy, explosive visual effects",
+    }
+    estilo_visual = ESTILOS_VORTEX.get(data.estilo, ESTILOS_VORTEX["cinematografico"])
+
+    try:
+        # ── ETAPA 1: ROTEIRO com Claude ──────────────────────────
+        resultado["etapas"]["roteiro"]["status"] = "processando"
+        print(f"[STUDIO] Etapa 1/4 — Gerando roteiro com Claude...")
+
+        ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+        if not ANTHROPIC_KEY:
+            raise Exception("ANTHROPIC_API_KEY não configurada")
+
+        async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+            r = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": ANTHROPIC_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-5-20251001",
+                    "max_tokens": 1000,
+                    "messages": [{
+                        "role": "user",
+                        "content": f"""Crie um roteiro viral para TikTok sobre "{data.tema}" no nicho de {data.nicho}.
+
+O roteiro deve ter:
+1. NARRAÇÃO: texto para narrar (máx 150 palavras para {data.duracao}s)
+2. PROMPT_VISUAL: descrição em inglês da cena principal para gerar imagem
+
+Formato de resposta:
+NARRAÇÃO: [texto aqui]
+PROMPT_VISUAL: [descrição visual em inglês aqui]
+
+Estilo visual: {data.estilo}"""
+                    }],
+                }
+            )
+
+        if not r.is_success:
+            raise Exception(f"Claude falhou: {r.status_code}")
+
+        claude_resp = r.json()["content"][0]["text"]
+        naracao = ""
+        prompt_visual = ""
+
+        for linha in claude_resp.split("\n"):
+            if linha.startswith("NARRAÇÃO:"):
+                naracao = linha.replace("NARRAÇÃO:", "").strip()
+            elif linha.startswith("PROMPT_VISUAL:"):
+                prompt_visual = linha.replace("PROMPT_VISUAL:", "").strip()
+
+        if not naracao:
+            naracao = claude_resp[:300]
+        if not prompt_visual:
+            prompt_visual = f"{data.tema} {estilo_visual}"
+
+        # Adicionar estilo Vortex ao prompt visual
+        prompt_visual_final = f"{prompt_visual}, {estilo_visual}"
+
+        resultado["etapas"]["roteiro"] = {
+            "status": "concluido",
+            "resultado": {"naracao": naracao, "prompt_visual": prompt_visual_final}
+        }
+        print(f"[STUDIO] ✅ Etapa 1 concluída — {len(naracao)} chars de narração")
+
+        # ── ETAPA 2: VOZ com ElevenLabs ──────────────────────────
+        resultado["etapas"]["voz"]["status"] = "processando"
+        print(f"[STUDIO] Etapa 2/4 — Gerando voz com ElevenLabs...")
+
+        EL_KEY = os.getenv("ELEVENLABS_API_KEY", "")
+        voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel — voz padrão Vortex
+
+        audio_url = None
+        if EL_KEY:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+                r_voz = await client.post(
+                    f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+                    headers={"xi-api-key": EL_KEY, "Content-Type": "application/json"},
+                    json={
+                        "text": naracao,
+                        "model_id": "eleven_flash_v2_5",
+                        "voice_settings": {"stability": 0.5, "similarity_boost": 0.8}
+                    }
+                )
+                if r_voz.is_success:
+                    import base64
+                    audio_b64 = base64.b64encode(r_voz.content).decode()
+                    audio_url = f"data:audio/mpeg;base64,{audio_b64[:100]}..."
+                    print(f"[STUDIO] ✅ Etapa 2 concluída — áudio gerado")
+
+        resultado["etapas"]["voz"] = {
+            "status": "concluido" if audio_url else "fallback",
+            "resultado": {"audio_gerado": bool(audio_url)}
+        }
+
+        # ── ETAPA 3: IMAGEM com FLUX ──────────────────────────────
+        resultado["etapas"]["imagem"]["status"] = "processando"
+        print(f"[STUDIO] Etapa 3/4 — Gerando imagem base...")
+
+        FAL_KEY = os.getenv("FAL_API_KEY", "")
+        imagem_url = None
+
+        if FAL_KEY:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+                r_img = await client.post(
+                    "https://fal.run/fal-ai/flux/schnell",
+                    headers={"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"},
+                    json={
+                        "prompt": prompt_visual_final,
+                        "image_size": "landscape_16_9",
+                        "num_inference_steps": 4,
+                        "num_images": 1,
+                    }
+                )
+                if r_img.is_success:
+                    img_data = r_img.json()
+                    imagem_url = img_data.get("images", [{}])[0].get("url", "")
+                    print(f"[STUDIO] ✅ Etapa 3 concluída — imagem gerada")
+
+        # Fallback: Pollinations grátis
+        if not imagem_url:
+            import urllib.parse
+            imagem_url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt_visual_final[:200])}"
+            print(f"[STUDIO] ⚠️ Usando Pollinations como fallback")
+
+        resultado["etapas"]["imagem"] = {
+            "status": "concluido",
+            "resultado": {"url": imagem_url}
+        }
+
+        # ── ETAPA 4: VÍDEO com FAL ────────────────────────────────
+        resultado["etapas"]["video"]["status"] = "processando"
+        print(f"[STUDIO] Etapa 4/4 — Animando com {data.modelo_video}...")
+
+        MODELOS_FAL = {
+            "wan22_fast":  "fal-ai/wan/t2v-1.3b",
+            "kling3_std":  "fal-ai/kling-video/v1.6/standard/text-to-video",
+            "kling3_pro":  "fal-ai/kling-video/v1.6/pro/text-to-video",
+            "luma_ray3":   "fal-ai/luma-dream-machine/ray-3",
+            "veo31_fast":  "fal-ai/veo3/fast",
+        }
+        fal_model = MODELOS_FAL.get(data.modelo_video, "fal-ai/wan/t2v-1.3b")
+
+        video_url = None
+        if FAL_KEY:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(120.0)) as client:
+                r_vid = await client.post(
+                    f"https://fal.run/{fal_model}",
+                    headers={"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"},
+                    json={
+                        "prompt": prompt_visual_final,
+                        "image_url": imagem_url,
+                        "duration": min(data.duracao, 10),
+                    }
+                )
+                if r_vid.is_success:
+                    vid_data = r_vid.json()
+                    video_url = vid_data.get("video", {}).get("url", "")
+                    print(f"[STUDIO] ✅ Etapa 4 concluída — vídeo gerado!")
+
+        resultado["etapas"]["video"] = {
+            "status": "concluido" if video_url else "erro",
+            "resultado": {"url": video_url}
+        }
+        resultado["video_final"] = video_url
+        resultado["status"] = "concluido"
+
+        # Debitar créditos só se gerou vídeo
+        if video_url:
+            debitar_creditos(usuario_id, creditos_necessarios, "vortex_studio")
+            # Atualizar DNA
+            atualizar_dna_com_roteiro(usuario_id, naracao, 8.0, data.nicho)
+            # Registrar dataset
+            registrar_par_treinamento(data.tema, naracao, tipo="studio")
+
+        return {
+            "ok": bool(video_url),
+            "resultado": resultado,
+            "mensagem": "✅ Vídeo criado pelo Vortex Studio!" if video_url else "⚠️ Erro na geração do vídeo",
+        }
+
+    except Exception as e:
+        print(f"[STUDIO] ❌ Erro: {e}")
+        raise HTTPException(500, f"Vortex Studio falhou: {str(e)}")
+
+
+# ══════════════════════════════════════════════════════════════
+# GEMMA 4 VISION — análise de imagem grátis
+# ══════════════════════════════════════════════════════════════
+@app.post("/gemma4/analisar-imagem")
+async def gemma4_analisar(data: dict, request: Request):
+    """
+    Analisa imagem com Gemma 4 — grátis com HF_API_KEY.
+    Usos: analisar thumbnail, ver objetos, ler texto em imagem.
+    """
+    imagem_url = data.get("url", "")
+    pergunta   = data.get("pergunta", "O que você vê nessa imagem? Seja detalhado.")
+
+    if not imagem_url:
+        raise HTTPException(400, "URL da imagem obrigatória")
+
+    try:
+        resultado = await gemma4_analisar_imagem(imagem_url, pergunta)
+        return {"ok": True, "analise": resultado, "modelo": "gemma-4-27b-it"}
+    except Exception as e:
+        raise HTTPException(500, f"Gemma 4 Vision falhou: {str(e)}")
 
 
 # ══════════════════════════════════════════════════════════════
