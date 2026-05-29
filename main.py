@@ -1,4 +1,4 @@
-import os, json, asyncio, base64, hmac, hashlib
+﻿import os, json, asyncio, base64, hmac, hashlib
 from datetime import datetime, date
 from database import (
     get_usuario_db, salvar_usuario_db,
