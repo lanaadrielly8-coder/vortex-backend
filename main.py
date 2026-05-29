@@ -1326,8 +1326,6 @@ MÉDIA: X/10 — [VIRAL/POTENCIAL/RETRABALHAR]"""
                 provedor_preferido="gemini",
             )
         except:
-            pass
-        except:
             raise HTTPException(500, "Serviço temporariamente indisponível. Tente novamente.")
     debitar_creditos(usuario_id, 1, "chat")
     incrementar_limite_diario(usuario_id, "chat")
@@ -2121,8 +2119,6 @@ async def traduzir_prompt(texto: str) -> str:
         print(f"[PT→EN] {texto[:40]} → {traduzido[:40]}")
         return traduzido.strip()
     except:
-        pass
-    except:
         return texto
 
 @app.post("/gerar-imagem")
@@ -2544,8 +2540,6 @@ Responda APENAS com JSON:
                 try:
                     clean = resultado_ia.strip().replace("```json","").replace("```","").strip()
                     trends_reais = _json.loads(clean)
-                except:
-                    pass
                 except:
                     trends_reais = []
         except Exception as e:
