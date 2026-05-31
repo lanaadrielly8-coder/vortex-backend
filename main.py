@@ -204,14 +204,16 @@ def extrair_usuario_id(request: Request, data_obj=None) -> str:
 
 # Domínios permitidos — adicionar domínio customizado quando tiver
 ALLOWED_ORIGINS = [
-    "http://localhost:5173",      # dev local
-    "http://localhost:3000",      # dev alternativo
-    "https://project-xg4jw.vercel.app",  # Vercel atual
-    "https://vortex.com.br",      # domínio futuro
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://vortex-frontend-iota.vercel.app",
+    "https://vortex-frontend-1hgunmnev.vercel.app",
+    "https://vortex-fr-git-40ab27-pjoaovitorpereiradasilva533-9939s-projects.vercel.app",
+    "https://vortex.com.br",
     "https://www.vortex.com.br",
     "https://vortexai.com.br",
-    os.getenv("FRONTEND_URL", "http://localhost:5173"),  # env var
-]
+    os.getenv("FRONTEND_URL", ""),
+]  # env var
 
 app.add_middleware(
     CORSMiddleware,
