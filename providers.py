@@ -1637,3 +1637,301 @@ async def chamar_openrouter(messages: list, system: str = "", modelo: str = "dee
             continue
     
     raise ValueError(f"OpenRouter falhou em todas as keys: {erros}")
+
+# ══════════════════════════════════════════════════════════════
+# IMAGEM GRÁTIS — HuggingFace + Gemini + Pollinations
+# ══════════════════════════════════════════════════════════════
+
+async def gerar_imagem_hf(prompt: str) -> str:
+    """HuggingFace FLUX Schnell — grátis com HF_API_KEY."""
+    key = os.getenv("HF_API_KEY", "")
+    if not key:
+        raise Exception("HF_API_KEY não configurada")
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+        r = await client.post(
+            "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+            headers={"Authorization": f"Bearer {key}"},
+            json={"inputs": prompt, "parameters": {"num_inference_steps": 4}},
+        )
+        if not r.is_success:
+            raise Exception(f"HF erro {r.status_code}: {r.text[:200]}")
+        import base64
+        b64 = base64.b64encode(r.content).decode()
+        return f"data:image/jpeg;base64,{b64}"
+
+
+async def gerar_imagem_gemini(prompt: str) -> str:
+    """Gemini 2.0 Flash Image — grátis com GEMINI_API_KEY."""
+    key = os.getenv("GEMINI_API_KEY", "")
+    if not key:
+        raise Exception("GEMINI_API_KEY não configurada")
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+        r = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key={key}",
+            json={
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"responseModalities": ["IMAGE", "TEXT"]},
+            },
+        )
+        if not r.is_success:
+            raise Exception(f"Gemini Image erro {r.status_code}: {r.text[:300]}")
+        data = r.json()
+        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        for part in parts:
+            if "inlineData" in part:
+                b64 = part["inlineData"]["data"]
+                mime = part["inlineData"].get("mimeType", "image/png")
+                return f"data:{mime};base64,{b64}"
+        raise Exception(f"Gemini não retornou imagem. Resposta: {str(data)[:300]}")
+
+
+async def gerar_imagem_pollinations(prompt: str, width: int = 1024, height: int = 1024) -> str:
+    """Pollinations.ai — grátis, ilimitado, sem key."""
+    import urllib.parse, random
+    prompt_enc = urllib.parse.quote(prompt[:500])
+    seed = random.randint(1, 99999)
+    url = f"https://image.pollinations.ai/prompt/{prompt_enc}?width={width}&height={height}&seed={seed}&nologo=true&model=flux"
+    return url
+
+
+# ══════════════════════════════════════════════════════════════
+# CASCATA CHAT E ROTEIRO
+# ══════════════════════════════════════════════════════════════
+
+async def chamar_huggingface_chat(messages: list, system: str = "", modelo: str = "meta-llama/Llama-3.3-70B-Instruct", max_tokens: int = 1500) -> str:
+    key = os.getenv("HF_API_KEY", "")
+    if not key:
+        raise Exception("HF_API_KEY não configurada")
+    msgs = []
+    if system:
+        msgs.append({"role": "system", "content": system})
+    msgs.extend(messages)
+    async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+        r = await client.post(
+            f"https://api-inference.huggingface.co/models/{modelo}/v1/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"model": modelo, "messages": msgs, "max_tokens": max_tokens, "stream": False},
+        )
+        if not r.is_success:
+            raise Exception(f"HF erro {r.status_code}: {r.text[:100]}")
+        return r.json()["choices"][0]["message"]["content"]
+
+
+async def gerar_texto_chat(messages: list, system: str = "", max_tokens: int = 1500) -> tuple[str, str]:
+    HF_MODELS = [
+        "meta-llama/Llama-3.3-70B-Instruct",
+        "Qwen/Qwen2.5-72B-Instruct",
+        "mistralai/Mistral-7B-Instruct-v0.3",
+        "microsoft/Phi-4",
+        "google/gemma-2-27b-it",
+    ]
+    hf_key = os.getenv("HF_API_KEY", "")
+    if hf_key:
+        for modelo_hf in HF_MODELS:
+            try:
+                texto = await chamar_huggingface_chat(messages, system, modelo_hf, max_tokens)
+                if texto and len(texto) > 10:
+                    print(f"[CHAT] ✅ HF {modelo_hf.split('/')[-1]}")
+                    return texto, f"hf_{modelo_hf.split('/')[-1]}"
+            except Exception as e:
+                continue
+
+    CHAT_MODELS = [
+        ("deepseek_v3",     "deepseek/deepseek-chat-v3-0324:free"),
+        ("qwen3_235b",      "qwen/qwen3-235b-a22b:free"),
+        ("llama33_70b",     "meta-llama/llama-3.3-70b-instruct:free"),
+        ("deepseek_r1",     "deepseek/deepseek-r1:free"),
+        ("gemma3_27b",      "google/gemma-3-27b-it:free"),
+        ("mistral_7b",      "mistralai/mistral-7b-instruct:free"),
+    ]
+    for nome, modelo in CHAT_MODELS:
+        try:
+            texto = await chamar_openrouter(messages, system, modelo, max_tokens)
+            if texto and len(texto) > 10:
+                print(f"[CHAT] ✅ {nome}")
+                return texto, nome
+        except Exception:
+            continue
+
+    try:
+        texto = await chamar_gemini(messages, system, "gemini-1.5-flash", max_tokens)
+        return texto, "gemini_fallback"
+    except:
+        pass
+
+    try:
+        texto = await chamar_groq(messages, system, None, max_tokens)
+        return texto, "groq_fallback"
+    except:
+        pass
+
+    raise HTTPException(503, "Chat temporariamente indisponível. Tente em 30 segundos.")
+
+
+async def gerar_texto_roteiro(messages: list, system: str = "", max_tokens: int = 2000) -> tuple[str, str]:
+    ROTEIRO_MODELS = [
+        ("deepseek_v3",     "deepseek/deepseek-chat-v3-0324:free"),
+        ("qwen3_235b",      "qwen/qwen3-235b-a22b:free"),
+        ("llama33_70b",     "meta-llama/llama-3.3-70b-instruct:free"),
+        ("deepseek_r1",     "deepseek/deepseek-r1:free"),
+        ("hermes3_405b",    "nousresearch/hermes-3-llama-3.1-405b:free"),
+        ("llama4_maverick", "meta-llama/llama-4-maverick:free"),
+    ]
+    for nome, modelo in ROTEIRO_MODELS:
+        try:
+            texto = await chamar_openrouter(messages, system, modelo, max_tokens)
+            if texto and len(texto) > 200:
+                print(f"[ROTEIRO] ✅ {nome}")
+                return texto, nome
+        except Exception:
+            continue
+
+    try:
+        texto = await chamar_groq(messages, system, "llama-3.3-70b-versatile", max_tokens)
+        if texto and len(texto) > 200:
+            return texto, "groq_llama33"
+    except:
+        pass
+
+    try:
+        texto = await chamar_gemini(messages, system, "gemini-2.0-flash", max_tokens)
+        if texto and len(texto) > 200:
+            return texto, "gemini_flash"
+    except:
+        pass
+
+    raise HTTPException(503, "Roteiro indisponível. Tente em alguns minutos.")
+
+
+# ══════════════════════════════════════════════════════════════
+# GEMMA 4 VISION
+# ══════════════════════════════════════════════════════════════
+
+async def gemma4_analisar_imagem(imagem_url: str, pergunta: str = "O que você vê nessa imagem?") -> str:
+    import base64 as _b64
+    key = os.getenv("HF_API_KEY", "")
+    if not key:
+        raise Exception("HF_API_KEY não configurada")
+    async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+        try:
+            img_resp = await client.get(imagem_url)
+            img_b64 = _b64.b64encode(img_resp.content).decode()
+            media_type = img_resp.headers.get("content-type", "image/jpeg").split(";")[0]
+        except:
+            img_b64 = None
+            media_type = "image/jpeg"
+        payload = {
+            "model": "google/gemma-4-27b-it",
+            "messages": [{
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{img_b64}"} if img_b64 else {"url": imagem_url}},
+                    {"type": "text", "text": pergunta},
+                ],
+            }],
+            "max_tokens": 500,
+        }
+        r = await client.post(
+            "https://api-inference.huggingface.co/v1/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json=payload,
+        )
+        if not r.is_success:
+            raise Exception(f"Gemma4 Vision {r.status_code}: {r.text[:200]}")
+        return r.json()["choices"][0]["message"]["content"]
+
+
+# ══════════════════════════════════════════════════════════════
+# AIML API
+# ══════════════════════════════════════════════════════════════
+
+async def chamar_aiml(messages: list, system: str = "", modelo: str = "gpt-4o", max_tokens: int = 2000) -> str:
+    key = os.getenv("AIML_API_KEY", "")
+    if not key:
+        raise Exception("AIML_API_KEY não configurada")
+    msgs = []
+    if system:
+        msgs.append({"role": "system", "content": system})
+    msgs.extend(messages)
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+        r = await client.post(
+            "https://api.aimlapi.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"model": modelo, "messages": msgs, "max_tokens": max_tokens, "temperature": 0.85},
+        )
+        if not r.is_success:
+            raise Exception(f"AIML {r.status_code}: {r.text[:100]}")
+        return r.json()["choices"][0]["message"]["content"]
+
+
+async def aiml_gerar_imagem(prompt: str, modelo: str = "flux/schnell", tamanho: str = "1024x1024") -> str:
+    key = os.getenv("AIML_API_KEY", "")
+    if not key:
+        raise Exception("AIML_API_KEY não configurada")
+    sizes = {"1024x1024": (1024,1024), "1024x1792": (1024,1792), "1792x1024": (1792,1024), "512x512": (512,512)}
+    w, h = sizes.get(tamanho, (1024, 1024))
+    async with httpx.AsyncClient(timeout=httpx.Timeout(90.0)) as client:
+        r = await client.post(
+            "https://api.aimlapi.com/v1/images/generations",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"model": modelo, "prompt": prompt, "n": 1, "size": f"{w}x{h}"},
+        )
+        if not r.is_success:
+            raise Exception(f"AIML Imagem {r.status_code}: {r.text[:200]}")
+        d = r.json()
+        if d.get("data") and len(d["data"]) > 0:
+            return d["data"][0].get("url") or d["data"][0].get("b64_json", "")
+        raise Exception("AIML não retornou imagem")
+
+
+async def aiml_gerar_video(prompt: str, modelo: str = "google/veo-3.0-generate", imagem_url: str = "") -> str:
+    key = os.getenv("AIML_API_KEY", "")
+    if not key:
+        raise Exception("AIML_API_KEY não configurada")
+    payload = {"model": modelo, "prompt": prompt}
+    if imagem_url and "i2v" in modelo:
+        payload["image_url"] = imagem_url
+    async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+        r = await client.post(
+            "https://api.aimlapi.com/v2/video/generations",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json=payload,
+        )
+        if not r.is_success:
+            raise Exception(f"AIML Vídeo {r.status_code}: {r.text[:200]}")
+        d = r.json()
+        gen_id = d.get("id") or d.get("generation_id")
+        if not gen_id:
+            if d.get("video", {}).get("url"):
+                return d["video"]["url"]
+            raise Exception(f"AIML sem generation_id: {d}")
+        for tentativa in range(18):
+            await asyncio.sleep(10)
+            r2 = await client.get(
+                f"https://api.aimlapi.com/v2/video/generations?generation_id={gen_id}",
+                headers={"Authorization": f"Bearer {key}"},
+            )
+            if r2.is_success:
+                d2 = r2.json()
+                status = d2.get("status", "")
+                if status == "completed":
+                    url = d2.get("video", {}).get("url") or d2.get("url", "")
+                    if url: return url
+                elif status in ["failed", "error"]:
+                    raise Exception(f"AIML vídeo falhou: {d2.get('error', {})}")
+        raise Exception("AIML vídeo timeout")
+
+
+async def aiml_text_to_speech(texto: str, voz: str = "nova", modelo: str = "tts-1") -> bytes:
+    key = os.getenv("AIML_API_KEY", "")
+    if not key:
+        raise Exception("AIML_API_KEY não configurada")
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
+        r = await client.post(
+            "https://api.aimlapi.com/v1/audio/speech",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"model": modelo, "input": texto[:4096], "voice": voz, "response_format": "mp3"},
+        )
+        if not r.is_success:
+            raise Exception(f"AIML TTS {r.status_code}: {r.text[:200]}")
+        return r.content
