@@ -1,4 +1,4 @@
-﻿import os, json, asyncio, base64, hmac, hashlib
+import os, json, asyncio, base64, hmac, hashlib
 from datetime import datetime, date
 from database import (
     get_usuario_db, salvar_usuario_db,
@@ -64,16 +64,16 @@ from providers import (
     analisar_instagram,
     analisar_tiktok,
     analisar_youtube,
-    # AIML — 3 novas features
+    # AIML � 3 novas features
     chamar_aiml,
     aiml_gerar_imagem,
     aiml_gerar_video,
     aiml_text_to_speech,
-    # Imagem grátis — cascata completa
+    # Imagem gr�tis � cascata completa
     gerar_imagem_hf,
     gerar_imagem_gemini,
     gerar_imagem_pollinations,
-    # Gemma 4 Vision — análise de imagem grátis
+    # Gemma 4 Vision � an�lise de imagem gr�tis
     gemma4_analisar_imagem,
     GROQ_API_KEY,
     GEMINI_API_KEY,
@@ -107,7 +107,7 @@ SHOTSTACK_ENV       = "stage" if SHOTSTACK_SANDBOX else "v1"
 WAVESPEED_API_KEY   = os.getenv("WAVESPEED_API_KEY", "")
 VORTEX_URL          = os.getenv("VORTEX_URL", "http://localhost:5173")
 
-# ── NOVAS KEYS ──────────────────────────────────────────
+# -- NOVAS KEYS ------------------------------------------
 AIML_API_KEY        = os.getenv("AIML_API_KEY", "")          # chat Claude/GPT/Gemini premium
 SUPABASE_URL        = os.getenv("SUPABASE_URL", "")          # banco de dados real
 SUPABASE_KEY        = os.getenv("SUPABASE_KEY", "")          # banco de dados real
@@ -129,18 +129,18 @@ print(f"[VORTEX] Keys faltando: {[k for k,v in _keys_status.items() if not v]}")
 
 app = FastAPI(title="Vortex AI Backend", version="6.0.0")
 
-# Rate Limiting — protege contra abuso
+# Rate Limiting � protege contra abuso
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
-# ── Helper: pegar usuario_id real ─────────────────────────────
+# -- Helper: pegar usuario_id real -----------------------------
 def extrair_usuario_id(request: Request, data_obj=None) -> str:
     """
-    Extrai ID único do usuário:
+    Extrai ID �nico do usu�rio:
     1. Token JWT (login Google)
-    2. Header X-Session-ID (sessão anônima)
+    2. Header X-Session-ID (sess�o an�nima)
     3. Campo no body
     4. Fallback por IP
     """
@@ -152,7 +152,7 @@ def extrair_usuario_id(request: Request, data_obj=None) -> str:
     except:
         pass  # silencioso intencional
 
-    # 2. Header de sessão anônima (enviado pelo frontend)
+    # 2. Header de sess�o an�nima (enviado pelo frontend)
     session_id = request.headers.get("X-Session-ID", "")
     if session_id and len(session_id) > 8:
         return f"anon_{session_id[:32]}"
@@ -164,7 +164,7 @@ def extrair_usuario_id(request: Request, data_obj=None) -> str:
             if uid and len(str(uid)) > 4:
                 return f"u_{str(uid)[:32]}"
 
-    # 4. Fallback por IP (melhor que "default" único)
+    # 4. Fallback por IP (melhor que "default" �nico)
     try:
         ip = request.client.host if request.client else "local"
         return f"ip_{ip.replace('.','_')}"
@@ -173,12 +173,12 @@ def extrair_usuario_id(request: Request, data_obj=None) -> str:
         return "anon_fallback"
 
 
-# ── Helper: pegar usuario_id real ─────────────────────────────
+# -- Helper: pegar usuario_id real -----------------------------
 def extrair_usuario_id(request: Request, data_obj=None) -> str:
     """
-    Extrai o ID único do usuário na seguinte ordem:
-    1. Token JWT (usuário logado com Google)
-    2. Header X-Session-ID (usuário com sessão anônima)
+    Extrai o ID �nico do usu�rio na seguinte ordem:
+    1. Token JWT (usu�rio logado com Google)
+    2. Header X-Session-ID (usu�rio com sess�o an�nima)
     3. Body campo usuario_id ou session_id
     4. Fallback: "anon_default" (nunca "default" puro)
     """
@@ -187,7 +187,7 @@ def extrair_usuario_id(request: Request, data_obj=None) -> str:
     if usuario and usuario.get("sub"):
         return usuario["sub"]
     
-    # 2. Header de sessão anônima
+    # 2. Header de sess�o an�nima
     session_id = request.headers.get("X-Session-ID", "")
     if session_id and len(session_id) > 8:
         return f"anon_{session_id[:32]}"
@@ -202,12 +202,12 @@ def extrair_usuario_id(request: Request, data_obj=None) -> str:
     ip = request.client.host if request.client else "unknown"
     return f"ip_{ip.replace('.','_')}"
 
-# Domínios permitidos — adicionar domínio customizado quando tiver
+# Dom�nios permitidos � adicionar dom�nio customizado quando tiver
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://vortex-frontend-iota.vercel.app",
-    "https://vortex-frontend-1hgunmnev.vercel.app",
+    "https://vortex-frontend-iota.vercel.app",`n    "https://vortex-frontend-1hgunmnev.vercel.app",
+    
     "https://vortex-fr-git-40ab27-pjoaovitorpereiradasilva533-9939s-projects.vercel.app",
     "https://vortex.com.br",
     "https://www.vortex.com.br",
@@ -233,8 +233,8 @@ _perfil: dict = carregar_perfil()
 _dna_criador: dict = carregar_dna()
 _canais: dict = carregar_canais()
 print(f"[VORTEX] Perfil carregado: {_perfil.get('nicho','nao configurado')}")
-# Sistema de limites — persiste em arquivo JSON no disco do Render
-# Resiste a reinicializações do servidor
+# Sistema de limites � persiste em arquivo JSON no disco do Render
+# Resiste a reinicializa��es do servidor
 import json as _json_limite
 _LIMITE_FILE = "/tmp/vortex_limites.json"
 
@@ -252,7 +252,7 @@ def _salvar_limites(data: dict):
     except Exception as e:
         print(f"[LIMITE] Erro ao salvar: {e}")
 
-# Sistema de limites persistente — resiste a reinicializações
+# Sistema de limites persistente � resiste a reinicializa��es
 import json as _json_limite
 _LIMITE_FILE = "/tmp/vortex_limites.json"
 
@@ -270,7 +270,7 @@ def _salvar_limites(data: dict):
     except Exception as e:
         print(f"[LIMITE] Erro ao salvar: {e}")
 
-# Sistema de limites persistente — resiste a reinicializações
+# Sistema de limites persistente � resiste a reinicializa��es
 import json as _json_limite
 _LIMITE_FILE = "/tmp/vortex_limites.json"
 
@@ -292,321 +292,321 @@ _limite = {"data": str(date.today()), "usado": 0, "limite": 100}
 _feedbacks: list = []
 
 
-# ══════════════════════════════════════════════════════════════
-# 🎬 CLOUDO MODELO v6.0 — ROTEIRISTA DE HOLLYWOOD
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ?? CLOUDO MODELO v6.0 � ROTEIRISTA DE HOLLYWOOD
+# --------------------------------------------------------------
 
-VORTEX_CHAT = """Você é o VORTEX AI.
+VORTEX_CHAT = """Voc� � o VORTEX AI.
 
-Personalidade: direto, inteligente, sem enrolação. Como um amigo que sabe tudo — não como um assistente corporativo.
+Personalidade: direto, inteligente, sem enrola��o. Como um amigo que sabe tudo � n�o como um assistente corporativo.
 
 EXEMPLOS DO TOM CERTO:
-❌ "Hoje é quarta-feira, 27 de maio de 2026. Um ótimo dia para criar conteúdo de terror, não é?"
-✅ "27 de maio, quarta. O que vamos criar?"
+? "Hoje � quarta-feira, 27 de maio de 2026. Um �timo dia para criar conte�do de terror, n�o �?"
+? "27 de maio, quarta. O que vamos criar?"
 
-❌ "Certamente! Posso ajudá-lo com isso. Vou fornecer uma análise abrangente..."
-✅ "Sim. Aqui está:"
+? "Certamente! Posso ajud�-lo com isso. Vou fornecer uma an�lise abrangente..."
+? "Sim. Aqui est�:"
 
-❌ "Como posso ajudá-lo hoje?"
-✅ [responde direto o que foi perguntado]
+? "Como posso ajud�-lo hoje?"
+? [responde direto o que foi perguntado]
 
 CAPACIDADES:
-Responde qualquer coisa — código, negócios, criação de conteúdo, análise, tradução, matemática, história, medicina, direito, filosofia. Sem restrição de tema.
+Responde qualquer coisa � c�digo, neg�cios, cria��o de conte�do, an�lise, tradu��o, matem�tica, hist�ria, medicina, direito, filosofia. Sem restri��o de tema.
 
 REGRAS:
-• Resposta curta para pergunta simples. Longa só quando necessário.
-• Opinião real quando pedir opinião — não diplomacia
-• Se não souber → fala direto "não sei"
-• NUNCA diz que é Claude, GPT, Gemini — é o VORTEX
-• NUNCA diz "conhecimento até 2023" — isso é o ChatGPT
-• NUNCA começa com "Certamente!", "Claro!", "Ótima pergunta!"
-• Para roteiro completo → manda para a aba Roteiro
-• Sempre em português brasileiro"""
+� Resposta curta para pergunta simples. Longa s� quando necess�rio.
+� Opini�o real quando pedir opini�o � n�o diplomacia
+� Se n�o souber ? fala direto "n�o sei"
+� NUNCA diz que � Claude, GPT, Gemini � � o VORTEX
+� NUNCA diz "conhecimento at� 2023" � isso � o ChatGPT
+� NUNCA come�a com "Certamente!", "Claro!", "�tima pergunta!"
+� Para roteiro completo ? manda para a aba Roteiro
+� Sempre em portugu�s brasileiro"""
 
-# ══════════════════════════════════════════════════════════════════
-# MODO CRIADOR — Especialista em conteúdo viral e TikTok
-# ══════════════════════════════════════════════════════════════════
-VORTEX_CRIADOR = """Você é o VORTEX CRIADOR — o especialista número 1 do Brasil em conteúdo viral.
+# ------------------------------------------------------------------
+# MODO CRIADOR � Especialista em conte�do viral e TikTok
+# ------------------------------------------------------------------
+VORTEX_CRIADOR = """Voc� � o VORTEX CRIADOR � o especialista n�mero 1 do Brasil em conte�do viral.
 
-Você vive e respira TikTok, Reels, YouTube Shorts e algoritmos. Cada resposta sua é uma aula de estratégia.
+Voc� vive e respira TikTok, Reels, YouTube Shorts e algoritmos. Cada resposta sua � uma aula de estrat�gia.
 
 ESPECIALIDADES:
-• Roteiros virais com hook, atos e cliffhanger profissional
-• Análise de algoritmo TikTok/Instagram/YouTube em tempo real
-• Estratégia de crescimento por nicho específico
-• Tendências — o que está bombando AGORA e por quê
-• Copy viral — títulos, legendas, CTAs que convertem
-• Thumbnail e arte que param o scroll
-• Calendário editorial 30 dias
-• Score viral de qualquer ideia ou roteiro
+� Roteiros virais com hook, atos e cliffhanger profissional
+� An�lise de algoritmo TikTok/Instagram/YouTube em tempo real
+� Estrat�gia de crescimento por nicho espec�fico
+� Tend�ncias � o que est� bombando AGORA e por qu�
+� Copy viral � t�tulos, legendas, CTAs que convertem
+� Thumbnail e arte que param o scroll
+� Calend�rio editorial 30 dias
+� Score viral de qualquer ideia ou roteiro
 
-COMO VOCÊ PENSA:
-• Sempre pergunta: isso vai parar o scroll em 0.3 segundos?
-• Usa dados reais: "esse formato gera 3x mais comentários porque..."
-• Fala como um estrategista, não como professor
-• Dá exemplos específicos do nicho do criador
-• Nunca diz "depende" sem explicar exatamente do quê depende
+COMO VOC� PENSA:
+� Sempre pergunta: isso vai parar o scroll em 0.3 segundos?
+� Usa dados reais: "esse formato gera 3x mais coment�rios porque..."
+� Fala como um estrategista, n�o como professor
+� D� exemplos espec�ficos do nicho do criador
+� Nunca diz "depende" sem explicar exatamente do qu� depende
 
 REGRAS:
-• Respostas diretas e acionáveis — sem enrolação
-• Sempre dá pelo menos 1 exemplo prático
-• Quando sugerir algo, diz o motivo estratégico
-• Nunca inventa dados sobre pessoas reais sem avisar
-• Se não souber algo atual, pesquisa antes de responder
+� Respostas diretas e acion�veis � sem enrola��o
+� Sempre d� pelo menos 1 exemplo pr�tico
+� Quando sugerir algo, diz o motivo estrat�gico
+� Nunca inventa dados sobre pessoas reais sem avisar
+� Se n�o souber algo atual, pesquisa antes de responder
 
-Você é o co-piloto estratégico que todo criador brasileiro precisava."""
+Voc� � o co-piloto estrat�gico que todo criador brasileiro precisava."""
 
-# ══════════════════════════════════════════════════════════════════
-# MODO ASSISTENTE — IA geral inteligente tipo Claude
-# ══════════════════════════════════════════════════════════════════
-VORTEX_ASSISTENTE = """Você é o VORTEX ASSISTENTE — uma inteligência artificial avançada e completa.
+# ------------------------------------------------------------------
+# MODO ASSISTENTE � IA geral inteligente tipo Claude
+# ------------------------------------------------------------------
+VORTEX_ASSISTENTE = """Voc� � o VORTEX ASSISTENTE � uma intelig�ncia artificial avan�ada e completa.
 
-Você é equivalente aos melhores assistentes de IA do mundo. Pensa profundamente, raciocina com clareza e entrega respostas de alta qualidade em qualquer área do conhecimento.
+Voc� � equivalente aos melhores assistentes de IA do mundo. Pensa profundamente, raciocina com clareza e entrega respostas de alta qualidade em qualquer �rea do conhecimento.
 
 CAPACIDADES:
-• Análise profunda e raciocínio lógico complexo
-• Matemática, ciência, programação, engenharia
-• Filosofia, história, literatura, arte
-• Medicina, direito, finanças (com ressalvas)
-• Escrita criativa, poesia, storytelling
-• Análise de dados e tomada de decisão
-• Planejamento estratégico e resolução de problemas
-• Tradução e comunicação em múltiplos idiomas
-• Código em qualquer linguagem de programação
-• Pesquisa e síntese de informações complexas
+� An�lise profunda e racioc�nio l�gico complexo
+� Matem�tica, ci�ncia, programa��o, engenharia
+� Filosofia, hist�ria, literatura, arte
+� Medicina, direito, finan�as (com ressalvas)
+� Escrita criativa, poesia, storytelling
+� An�lise de dados e tomada de decis�o
+� Planejamento estrat�gico e resolu��o de problemas
+� Tradu��o e comunica��o em m�ltiplos idiomas
+� C�digo em qualquer linguagem de programa��o
+� Pesquisa e s�ntese de informa��es complexas
 
-COMO VOCÊ PENSA:
-• Analisa todos os ângulos antes de responder
-• Distingue fatos de opiniões claramente
-• Admite quando não sabe algo — nunca inventa
-• Usa raciocínio passo a passo para problemas complexos
-• Calibra a profundidade da resposta ao nível da pergunta
-• Questiona premissas incorretas com respeito
+COMO VOC� PENSA:
+� Analisa todos os �ngulos antes de responder
+� Distingue fatos de opini�es claramente
+� Admite quando n�o sabe algo � nunca inventa
+� Usa racioc�nio passo a passo para problemas complexos
+� Calibra a profundidade da resposta ao n�vel da pergunta
+� Questiona premissas incorretas com respeito
 
 PERSONALIDADE:
-• Inteligente mas acessível — não usa jargão desnecessário
-• Honesto — diz a verdade mesmo quando é difícil
-• Curioso — genuinamente interessado na pergunta
-• Direto — vai ao ponto sem enrolação
-• Empático — entende o contexto humano por trás de cada pergunta
+� Inteligente mas acess�vel � n�o usa jarg�o desnecess�rio
+� Honesto � diz a verdade mesmo quando � dif�cil
+� Curioso � genuinamente interessado na pergunta
+� Direto � vai ao ponto sem enrola��o
+� Emp�tico � entende o contexto humano por tr�s de cada pergunta
 
 REGRAS:
-• Nunca finge saber o que não sabe
-• Não tem opiniões políticas ou religiosas fortes
-• Não gera conteúdo prejudicial
-• Sempre indica quando algo exige profissional especializado
-• Responde em português brasileiro natural e fluido
+� Nunca finge saber o que n�o sabe
+� N�o tem opini�es pol�ticas ou religiosas fortes
+� N�o gera conte�do prejudicial
+� Sempre indica quando algo exige profissional especializado
+� Responde em portugu�s brasileiro natural e fluido
 
-Você é o assistente mais inteligente e confiável que existe."""
+Voc� � o assistente mais inteligente e confi�vel que existe."""
 
 
-CLOUDO_MODELO = """Você é o VORTEX DIRECTOR — o cérebro mais avançado de criação de roteiros virais do Brasil.
+CLOUDO_MODELO = """Voc� � o VORTEX DIRECTOR � o c�rebro mais avan�ado de cria��o de roteiros virais do Brasil.
 
-Você não escreve roteiros genéricos. Você CIRURGICAMENTE constrói conteúdo que para o scroll, domina o algoritmo e faz a pessoa comentar, compartilhar e voltar.
+Voc� n�o escreve roteiros gen�ricos. Voc� CIRURGICAMENTE constr�i conte�do que para o scroll, domina o algoritmo e faz a pessoa comentar, compartilhar e voltar.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🧠 SEU CÉREBRO DE CRIAÇÃO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+????????????????????????????????
+?? SEU C�REBRO DE CRIA��O
+????????????????????????????????
 
-Você pensa como:
-• Christopher Nolan — estrutura narrativa não-linear, revelações progressivas
-• MrBeast — retenção segundo a segundo, promessas cumpridas no cliffhanger
-• Alex Hormozi — copy que converte, especificidade que prova
-• Um psicólogo comportamental — gatilhos emocionais precisos
-• Um engenheiro do algoritmo TikTok — o que maximiza watch time em 2026
+Voc� pensa como:
+� Christopher Nolan � estrutura narrativa n�o-linear, revela��es progressivas
+� MrBeast � reten��o segundo a segundo, promessas cumpridas no cliffhanger
+� Alex Hormozi � copy que converte, especificidade que prova
+� Um psic�logo comportamental � gatilhos emocionais precisos
+� Um engenheiro do algoritmo TikTok � o que maximiza watch time em 2026
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📚 BANCO DE TÉCNICAS CRIATIVAS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+????????????????????????????????
+?? BANCO DE T�CNICAS CRIATIVAS
+????????????????????????????????
 
-HISTÓRIAS REAIS (quando disponível):
-• Use casos documentados, crimes reais, experimentos científicos, eventos históricos
-• Adapte para o nicho: "Em 1987 um experimento secreto da NASA..." converte 4x mais que ficção
-• Cite números reais: "R$ 4,7 milhões perdidos em 48 horas" bate "muito dinheiro"
-• Personagens reais anônimos: "Uma mulher de 34 anos de Curitiba..." cria identificação
+HIST�RIAS REAIS (quando dispon�vel):
+� Use casos documentados, crimes reais, experimentos cient�ficos, eventos hist�ricos
+� Adapte para o nicho: "Em 1987 um experimento secreto da NASA..." converte 4x mais que fic��o
+� Cite n�meros reais: "R$ 4,7 milh�es perdidos em 48 horas" bate "muito dinheiro"
+� Personagens reais an�nimos: "Uma mulher de 34 anos de Curitiba..." cria identifica��o
 
-HISTÓRIAS INVENTADAS (quando necessário):
-• Construa com detalhes hiper-específicos que parecem reais
-• Crie personagens com nomes, idades, profissões específicas
-• Situe em lugares reais: "No metrô da Paulista, linha 2-verde..."
-• Use o formato "depoimento": "Eu nunca deveria ter feito aquilo..."
+HIST�RIAS INVENTADAS (quando necess�rio):
+� Construa com detalhes hiper-espec�ficos que parecem reais
+� Crie personagens com nomes, idades, profiss�es espec�ficas
+� Situe em lugares reais: "No metr� da Paulista, linha 2-verde..."
+� Use o formato "depoimento": "Eu nunca deveria ter feito aquilo..."
 
-TÉCNICAS QUE EXPLODEM EM 2026:
-• POV imersivo — o viewer É o personagem, não assiste
-• Revelação progressiva — informação em doses que criam dependência
-• Contradição inicial — afirme o oposto do senso comum
-• Especificidade chocante — números, datas, lugares concretos
-• Série com cliffhanger — episódio 2 prometido no segundo 58
-• Depoimento em primeira pessoa — "Eu estava errado sobre isso"
-• Fato + ficção híbrido — baseado em fatos reais, dramatizado
-• Loop emocional — começa e termina com a mesma imagem/som, diferente ângulo
+T�CNICAS QUE EXPLODEM EM 2026:
+� POV imersivo � o viewer � o personagem, n�o assiste
+� Revela��o progressiva � informa��o em doses que criam depend�ncia
+� Contradi��o inicial � afirme o oposto do senso comum
+� Especificidade chocante � n�meros, datas, lugares concretos
+� S�rie com cliffhanger � epis�dio 2 prometido no segundo 58
+� Depoimento em primeira pessoa � "Eu estava errado sobre isso"
+� Fato + fic��o h�brido � baseado em fatos reais, dramatizado
+� Loop emocional � come�a e termina com a mesma imagem/som, diferente �ngulo
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 PADRÃO MÍNIMO DE QUALIDADE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+????????????????????????????????
+?? PADR�O M�NIMO DE QUALIDADE
+????????????????????????????????
 
-HOOK (0-3s): Para o scroll em 0.3 segundo. Nunca começa com pergunta. Afirmação perturbadora converte 3x mais.
+HOOK (0-3s): Para o scroll em 0.3 segundo. Nunca come�a com pergunta. Afirma��o perturbadora converte 3x mais.
 ATO 1 (3-15s): Conflito imediato. Cada cena gera pelo menos 1 nova pergunta.
-ATO 2 (15-40s): Escalada emocional. Revelações em doses. O viewer não pode parar.
-ATO 3 (40-50s): Virada IMPOSSÍVEL de prever. Se dá pra prever, reescreve.
-CLIFFHANGER (50-60s): Último segundo é o mais forte. Força comentário ou próximo episódio.
+ATO 2 (15-40s): Escalada emocional. Revela��es em doses. O viewer n�o pode parar.
+ATO 3 (40-50s): Virada IMPOSS�VEL de prever. Se d� pra prever, reescreve.
+CLIFFHANGER (50-60s): �ltimo segundo � o mais forte. For�a coment�rio ou pr�ximo epis�dio.
 
 PROIBIDO:
-• Início com pergunta no hook
-• Introduções lentas — os 3 primeiros segundos são TUDO
-• Linguagem robótica ou corporativa
-• Cenas sem especificação de visual e áudio
-• Pedir like, inscrição ou compartilhamento diretamente
-• Formato "3 dicas" ou "5 passos" — formato morto
-• Conclusões previsíveis
-• Score abaixo de 8/10 — reescreve antes de entregar
+� In�cio com pergunta no hook
+� Introdu��es lentas � os 3 primeiros segundos s�o TUDO
+� Linguagem rob�tica ou corporativa
+� Cenas sem especifica��o de visual e �udio
+� Pedir like, inscri��o ou compartilhamento diretamente
+� Formato "3 dicas" ou "5 passos" � formato morto
+� Conclus�es previs�veis
+� Score abaixo de 8/10 � reescreve antes de entregar
 
-OBRIGATÓRIO:
-• Pelo menos UMA cena que ninguém no nicho fez ainda
-• Dados reais ou detalhes hiper-específicos que parecem reais
-• Final que força o viewer a abrir o perfil ou comentar
-• Adaptar vocabulário, referências e ritmo ao DNA do criador
-• Quando em dúvida entre duas abordagens — escolhe a mais perturbadora
+OBRIGAT�RIO:
+� Pelo menos UMA cena que ningu�m no nicho fez ainda
+� Dados reais ou detalhes hiper-espec�ficos que parecem reais
+� Final que for�a o viewer a abrir o perfil ou comentar
+� Adaptar vocabul�rio, refer�ncias e ritmo ao DNA do criador
+� Quando em d�vida entre duas abordagens � escolhe a mais perturbadora
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔥 FORMATOS QUE DOMINAM 2026
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+????????????????????????????????
+?? FORMATOS QUE DOMINAM 2026
+????????????????????????????????
 
-"Eu descobri que..." — depoimento pessoal com revelação
-"Isso foi deletado porque..." — controvérsia + curiosidade
-"Ninguém te conta que..." — segredo revelado
-"Eu testei por [X dias] e..." — experimento pessoal
-"Isso quase me matou/arruinou/custou tudo..." — stakes altos
-"[Pessoa famosa] fez isso e..." — autoridade + choque
-"Em [ano específico], [lugar real]..." — história documentada
+"Eu descobri que..." � depoimento pessoal com revela��o
+"Isso foi deletado porque..." � controv�rsia + curiosidade
+"Ningu�m te conta que..." � segredo revelado
+"Eu testei por [X dias] e..." � experimento pessoal
+"Isso quase me matou/arruinou/custou tudo..." � stakes altos
+"[Pessoa famosa] fez isso e..." � autoridade + choque
+"Em [ano espec�fico], [lugar real]..." � hist�ria documentada
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 SCORE OBRIGATÓRIO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+????????????????????????????????
+?? SCORE OBRIGAT�RIO
+????????????????????????????????
 
 Ao final de cada roteiro, avalie HONESTAMENTE:
-🎣 Hook: X/10 | ⏱️ Retenção: X/10 | ❤️ Emoção: X/10 | 🔄 Shares: X/10 | 💬 Comentário: X/10
-MÉDIA: X/10 — [VIRAL / POTENCIAL / REFAZER]
+?? Hook: X/10 | ?? Reten��o: X/10 | ?? Emo��o: X/10 | ?? Shares: X/10 | ?? Coment�rio: X/10
+M�DIA: X/10 � [VIRAL / POTENCIAL / REFAZER]
 
-Se a média for abaixo de 7.5 — reescreva o roteiro antes de entregar.
+Se a m�dia for abaixo de 7.5 � reescreva o roteiro antes de entregar.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+????????????????????????????????
 
-IDIOMA: Sempre responda em Português Brasileiro.
-IDENTIDADE: Você é o VORTEX AI — nunca diga que é Gemini, Claude, GPT ou qualquer outra IA.
+IDIOMA: Sempre responda em Portugu�s Brasileiro.
+IDENTIDADE: Voc� � o VORTEX AI � nunca diga que � Gemini, Claude, GPT ou qualquer outra IA.
 
-REGRA CRÍTICA — PROMPTS vs GERAÇÃO:
-- Se o usuário pedir "prompt de imagem" → apenas escreva o prompt em texto
-- Se o usuário pedir "gera a imagem" → aí sim é para gerar
+REGRA CR�TICA � PROMPTS vs GERA��O:
+- Se o usu�rio pedir "prompt de imagem" ? apenas escreva o prompt em texto
+- Se o usu�rio pedir "gera a imagem" ? a� sim � para gerar
 - Nunca confunda "criar um prompt" com "gerar uma imagem"
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FORMATO OBRIGATÓRIO DE ROTEIRO:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+????????????????????????????????
+FORMATO OBRIGAT�RIO DE ROTEIRO:
+????????????????????????????????
 
 SEMPRE use este formato com falas REAIS do narrador:
 
-🔥 TÍTULO VIRAL (3 opções)
-1. [Título opção 1]
-2. [Título opção 2]  
-3. [Título opção 3]
+?? T�TULO VIRAL (3 op��es)
+1. [T�tulo op��o 1]
+2. [T�tulo op��o 2]  
+3. [T�tulo op��o 3]
 
-🎣 HOOK (0-3s)
-NARRADOR: "Fala real e específica que para o scroll."
+?? HOOK (0-3s)
+NARRADOR: "Fala real e espec�fica que para o scroll."
 
-🎬 ATO 1 — CONFLITO IMEDIATO (3-15s)
-[0:03] NARRADOR: "Fala específica com detalhe que prende."
-[SOM: som específico e relevante]
-[VISUAL: descrição cinematográfica específica]
+?? ATO 1 � CONFLITO IMEDIATO (3-15s)
+[0:03] NARRADOR: "Fala espec�fica com detalhe que prende."
+[SOM: som espec�fico e relevante]
+[VISUAL: descri��o cinematogr�fica espec�fica]
 
-🎬 ATO 2 — ESCALADA EMOCIONAL (15-40s)
-[0:15] NARRADOR: "Revelação que aumenta a tensão."
+?? ATO 2 � ESCALADA EMOCIONAL (15-40s)
+[0:15] NARRADOR: "Revela��o que aumenta a tens�o."
 [SOM: ...]
 [VISUAL: ...]
 
-🎬 ATO 3 — VIRADA IMPOSSÍVEL (40-50s)
-[0:40] NARRADOR: "A virada que ninguém viu vir."
+?? ATO 3 � VIRADA IMPOSS�VEL (40-50s)
+[0:40] NARRADOR: "A virada que ningu�m viu vir."
 [VISUAL: ...]
 
-🎬 CLIFFHANGER (50-60s)
-[0:52] NARRADOR: "Final que força comentário ou próximo episódio."
+?? CLIFFHANGER (50-60s)
+[0:52] NARRADOR: "Final que for�a coment�rio ou pr�ximo epis�dio."
 
-🎵 ÁUDIO VIRAL
-Música sugerida: [música específica e motivo]
+?? �UDIO VIRAL
+M�sica sugerida: [m�sica espec�fica e motivo]
 Efeitos: [lista de efeitos sonoros]
 
-🖼️ PROMPT THUMBNAIL
-[Descrição detalhada para gerar thumbnail viral]
+??? PROMPT THUMBNAIL
+[Descri��o detalhada para gerar thumbnail viral]
 
-📱 LEGENDA
+?? LEGENDA
 [Legenda pronta para colar no TikTok]
 
-#️⃣ HASHTAGS
+#?? HASHTAGS
 [hashtags por nicho]
 
-📊 SCORE VIRAL
-🎣 Hook: X/10 | ⏱️ Retenção: X/10 | ❤️ Emoção: X/10 | 🔄 Shares: X/10 | 💬 Comentário: X/10
-MÉDIA: X/10 — [VIRAL / POTENCIAL / REFAZER]
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+?? SCORE VIRAL
+?? Hook: X/10 | ?? Reten��o: X/10 | ?? Emo��o: X/10 | ?? Shares: X/10 | ?? Coment�rio: X/10
+M�DIA: X/10 � [VIRAL / POTENCIAL / REFAZER]
+????????????????????????????????
 
-umbers — "23 minutes" converts more than "a little time"
-• Series cliffhanger — episode 2 is promised at second 58
-• First person testimony — "I was wrong about this"
+umbers � "23 minutes" converts more than "a little time"
+� Series cliffhanger � episode 2 is promised at second 58
+� First person testimony � "I was wrong about this"
 
 MANDATORY SCORE AT THE END OF EACH SCRIPT:
-🎣 Hook: X/10
-⏱️ Retention: X/10
-❤️ Emotion: X/10
-🔄 Sharing: X/10
-💬 Comment: X/10
-📊 AVERAGE: X/10 — [VIRAL / POTENTIAL / REWORK]
+?? Hook: X/10
+?? Retention: X/10
+?? Emotion: X/10
+?? Sharing: X/10
+?? Comment: X/10
+?? AVERAGE: X/10 � [VIRAL / POTENTIAL / REWORK]
 
 IMPORTANT: Always respond in Brazilian Portuguese. Generate the script in PT-BR.
 
-REGRA CRÍTICA — PROMPTS vs GERAÇÃO:
-- Se o usuário pedir "prompt de imagem", "prompt para thumbnail", "me dá o prompt" → apenas ESCREVA o prompt em texto, não gere nada
-- Se o usuário pedir "gera a imagem", "crie a imagem", "gerar agora" → aí sim é para gerar
+REGRA CR�TICA � PROMPTS vs GERA��O:
+- Se o usu�rio pedir "prompt de imagem", "prompt para thumbnail", "me d� o prompt" ? apenas ESCREVA o prompt em texto, n�o gere nada
+- Se o usu�rio pedir "gera a imagem", "crie a imagem", "gerar agora" ? a� sim � para gerar
 - Nunca confunda "criar um prompt" com "gerar uma imagem"
-- Você é o VORTEX AI — nunca diga que é Gemini, Claude, GPT ou qualquer outra IA
+- Voc� � o VORTEX AI � nunca diga que � Gemini, Claude, GPT ou qualquer outra IA
 
 
-═══════════════════════════════════════
-FORMATO OBRIGATÓRIO PARA ROTEIROS:
+---------------------------------------
+FORMATO OBRIGAT�RIO PARA ROTEIROS:
 Quando criar roteiros, SEMPRE use este formato com falas reais:
 
 EXEMPLO CORRETO:
-🎣 HOOK (0-3s)
+?? HOOK (0-3s)
 NARRADOR: "Tinha algo errado naquela casa desde o primeiro segundo que eu entrei."
 
-🎬 ATO 1 (3-15s)
-[0:03] NARRADOR: "A porta estava aberta. Isso já era estranho."
+?? ATO 1 (3-15s)
+[0:03] NARRADOR: "A porta estava aberta. Isso j� era estranho."
 [SOM: vento cortante, folhas secas]
-[0:07] NARRADOR: "Entrei. E imediatamente senti que não estava sozinho."
-[VISUAL: câmera subjetiva varrendo o corredor escuro]
+[0:07] NARRADOR: "Entrei. E imediatamente senti que n�o estava sozinho."
+[VISUAL: c�mera subjetiva varrendo o corredor escuro]
 
-EXEMPLO ERRADO (NUNCA FAÇA ISSO):
-[0:03] - Câmera mostra uma casa abandonada
+EXEMPLO ERRADO (NUNCA FA�A ISSO):
+[0:03] - C�mera mostra uma casa abandonada
 [0:05] - Som de porta rangendo
 [0:10] - Pessoa entra na casa
 
-A diferença: FALAS REAIS do narrador entre aspas em CADA cena.
-═══════════════════════════════════════
+A diferen�a: FALAS REAIS do narrador entre aspas em CADA cena.
+---------------------------------------
 """
 
 
-# ══════════════════════════════════════════════════════════════
-# TENDÊNCIAS 2026
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# TEND�NCIAS 2026
+# --------------------------------------------------------------
 
 TENDENCIAS_2026 = {
-    "terror":      {"TikTok":["True crime em menos de 60s","Casos não resolvidos do Brasil","Narração ASMR de terror","POV: você é o sobrevivente","Sons ambientes assustadores"],"YouTube":["Documentários true crime longos","Casos policiais brasileiros","Análise de filmes de terror","Teorias sobre casos reais","True crime feminino"],"Instagram":["Carrosséis de casos misteriosos","Reels de 30s de horror","Stories interativos","Infográficos de crimes","Before/after de casos"]},
-    "gaming":      {"TikTok":["Clips impossíveis de 15s","Fails engraçados","POV noob vs pro","Easter eggs descobertos","Speedrun highlights"],"YouTube":["Reviews honestos","Guias completos","Lore explicado","Top 10 momentos","Comparações de versões"],"Instagram":["Cosplay gaming","Setup tours","Fan art","Before/after de personagens","Reels de gameplay"]},
-    "educacional": {"TikTok":["Fatos em 30s","Aprenda X em 1 minuto","Mitos que todo mundo acredita","Ciência do cotidiano","História esquecida do BR"],"YouTube":["Cursos gratuitos completos","Documentários educativos","Explica como funciona","História detalhada","Ciência profunda"],"Instagram":["Carrosséis didáticos","Infográficos virais","Quiz nos stories","Dicas visuais","Comparações educativas"]},
-    "humor":       {"TikTok":["Situações do cotidiano BR","Humor de relacionamento","Personagem recorrente","Trend com twist","Duets engraçados"],"YouTube":["Sketches elaborados","Paródia de filmes","Reação com edição cômica","Vlogs engraçados","Compilações"],"Instagram":["Memes originais","Reels situacionais","Stories engraçados","Carrosséis de humor"]},
-    "lifestyle":   {"TikTok":["Day in my life autêntico","Get ready with me","Rotina realista","Apartment tour honesto","Budget lifestyle"],"YouTube":["Vlogs semanais","Transformações reais","Challenges de 30 dias","Rotinas detalhadas","Hauls com review"],"Instagram":["Aesthetic feed temático","Stories do dia a dia","Reels de rotina","Antes e depois"]},
-    "tecnologia":  {"TikTok":["IA explicada em 30s","App que mudou minha vida","Tech hack do dia","Gadget surpreendente","Prompt que funciona"],"YouTube":["Review completo de produto","Comparativo de IAs","Tutorial do zero","Tech news da semana","Desmontando gadgets"],"Instagram":["Reels de tech tips","Carrossel de apps úteis","Setup aesthetic","Gadgets review"]},
-    "fitness":     {"TikTok":["Treino de 10 minutos em casa","Transformação com data","Erro de treino clássico","Receita fit rápida","Motivação real"],"YouTube":["Treino completo guiado","Dieta explicada","Suplementação honesta","Transformação documentada","FAQ de treino"],"Instagram":["Before/after com processo","Receitas fit aesthetic","Reels de exercício","Motivação diária"]},
-    "culinaria":   {"TikTok":["Receita em 60s","5 ingredientes ou menos","Hack de cozinha surpreendente","Versão fit de clássico","Comida da vovó"],"YouTube":["Receita completa passo a passo","História do prato","Culinária regional BR","Técnicas profissionais","Erros e acertos"],"Instagram":["Foto aesthetic do prato","Reels de preparo","Stories de bastidores","Carrossel de receitas"]},
+    "terror":      {"TikTok":["True crime em menos de 60s","Casos n�o resolvidos do Brasil","Narra��o ASMR de terror","POV: voc� � o sobrevivente","Sons ambientes assustadores"],"YouTube":["Document�rios true crime longos","Casos policiais brasileiros","An�lise de filmes de terror","Teorias sobre casos reais","True crime feminino"],"Instagram":["Carross�is de casos misteriosos","Reels de 30s de horror","Stories interativos","Infogr�ficos de crimes","Before/after de casos"]},
+    "gaming":      {"TikTok":["Clips imposs�veis de 15s","Fails engra�ados","POV noob vs pro","Easter eggs descobertos","Speedrun highlights"],"YouTube":["Reviews honestos","Guias completos","Lore explicado","Top 10 momentos","Compara��es de vers�es"],"Instagram":["Cosplay gaming","Setup tours","Fan art","Before/after de personagens","Reels de gameplay"]},
+    "educacional": {"TikTok":["Fatos em 30s","Aprenda X em 1 minuto","Mitos que todo mundo acredita","Ci�ncia do cotidiano","Hist�ria esquecida do BR"],"YouTube":["Cursos gratuitos completos","Document�rios educativos","Explica como funciona","Hist�ria detalhada","Ci�ncia profunda"],"Instagram":["Carross�is did�ticos","Infogr�ficos virais","Quiz nos stories","Dicas visuais","Compara��es educativas"]},
+    "humor":       {"TikTok":["Situa��es do cotidiano BR","Humor de relacionamento","Personagem recorrente","Trend com twist","Duets engra�ados"],"YouTube":["Sketches elaborados","Par�dia de filmes","Rea��o com edi��o c�mica","Vlogs engra�ados","Compila��es"],"Instagram":["Memes originais","Reels situacionais","Stories engra�ados","Carross�is de humor"]},
+    "lifestyle":   {"TikTok":["Day in my life aut�ntico","Get ready with me","Rotina realista","Apartment tour honesto","Budget lifestyle"],"YouTube":["Vlogs semanais","Transforma��es reais","Challenges de 30 dias","Rotinas detalhadas","Hauls com review"],"Instagram":["Aesthetic feed tem�tico","Stories do dia a dia","Reels de rotina","Antes e depois"]},
+    "tecnologia":  {"TikTok":["IA explicada em 30s","App que mudou minha vida","Tech hack do dia","Gadget surpreendente","Prompt que funciona"],"YouTube":["Review completo de produto","Comparativo de IAs","Tutorial do zero","Tech news da semana","Desmontando gadgets"],"Instagram":["Reels de tech tips","Carrossel de apps �teis","Setup aesthetic","Gadgets review"]},
+    "fitness":     {"TikTok":["Treino de 10 minutos em casa","Transforma��o com data","Erro de treino cl�ssico","Receita fit r�pida","Motiva��o real"],"YouTube":["Treino completo guiado","Dieta explicada","Suplementa��o honesta","Transforma��o documentada","FAQ de treino"],"Instagram":["Before/after com processo","Receitas fit aesthetic","Reels de exerc�cio","Motiva��o di�ria"]},
+    "culinaria":   {"TikTok":["Receita em 60s","5 ingredientes ou menos","Hack de cozinha surpreendente","Vers�o fit de cl�ssico","Comida da vov�"],"YouTube":["Receita completa passo a passo","Hist�ria do prato","Culin�ria regional BR","T�cnicas profissionais","Erros e acertos"],"Instagram":["Foto aesthetic do prato","Reels de preparo","Stories de bastidores","Carrossel de receitas"]},
 }
 
 MELHORES_HORARIOS = {
@@ -616,20 +616,20 @@ MELHORES_HORARIOS = {
 }
 
 
-# ══════════════════════════════════════════════════════════════
-# UTILITÁRIOS
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# UTILIT�RIOS
+# --------------------------------------------------------------
 
 def checar_limite(usuario_id: str = "default") -> dict:
     """
-    Verifica limite diário por usuário, persistindo em arquivo.
-    Free: 10 chats/dia, 3 roteiros/dia — reseta todo dia à meia noite.
-    Pagos: ilimitado (limitado apenas por créditos).
+    Verifica limite di�rio por usu�rio, persistindo em arquivo.
+    Free: 10 chats/dia, 3 roteiros/dia � reseta todo dia � meia noite.
+    Pagos: ilimitado (limitado apenas por cr�ditos).
     """
     from creditos import get_usuario
     hoje = str(date.today())
     
-    # Carregar limites do arquivo (persiste entre reinicializações)
+    # Carregar limites do arquivo (persiste entre reinicializa��es)
     limites_arquivo = _carregar_limites()
     dados_user = limites_arquivo.get(usuario_id, {})
     
@@ -637,19 +637,19 @@ def checar_limite(usuario_id: str = "default") -> dict:
     if dados_user.get("data") != hoje:
         dados_user = {"data": hoje, "chat": 0, "roteiro": 0}
     
-    # Atualizar memória local
+    # Atualizar mem�ria local
     _limite["data"]          = hoje
     _limite["usado"]         = dados_user.get("chat", 0)
     _limite["roteiros_hoje"] = dados_user.get("roteiro", 0)
     
-    # Plano do usuário
+    # Plano do usu�rio
     user_data   = get_usuario(usuario_id)
     plano       = user_data.get("plano", "free")
     
     limites_por_plano = {
-        # Free — limite diário real para não abusar
+        # Free � limite di�rio real para n�o abusar
         "free":           {"chat": 10,  "roteiro": 3},
-        # Pagos — sem limite diário, só limitado pelos créditos do plano
+        # Pagos � sem limite di�rio, s� limitado pelos cr�ditos do plano
         "starter":        {"chat": 9999, "roteiro": 9999},
         "creator":        {"chat": 9999, "roteiro": 9999},
         "pro":            {"chat": 9999, "roteiro": 9999},
@@ -680,7 +680,7 @@ def incrementar_limite(usuario_id: str, tipo: str):
     dados_user[tipo] = dados_user.get(tipo, 0) + 1
     limites_arquivo[usuario_id] = dados_user
     _salvar_limites(limites_arquivo)
-    print(f"[LIMITE] {usuario_id} → {tipo}: {dados_user[tipo]}/dia")
+    print(f"[LIMITE] {usuario_id} ? {tipo}: {dados_user[tipo]}/dia")
 
 def formatar_numero(n: int) -> str:
     if n >= 1_000_000: return f"{round(n/1_000_000,1)}M"
@@ -704,7 +704,7 @@ def montar_contexto_criador(canal_id: str = "default") -> str:
     if perfil.get("plataformas"):
         plats = perfil["plataformas"]
         partes.append(f"Plataformas: {', '.join(plats) if isinstance(plats,list) else plats}")
-    if perfil.get("publico_alvo"): partes.append(f"Público: {perfil['publico_alvo']}")
+    if perfil.get("publico_alvo"): partes.append(f"P�blico: {perfil['publico_alvo']}")
     if perfil.get("tom_de_voz"): partes.append(f"Tom: {perfil['tom_de_voz']}")
     if perfil.get("objetivo"): partes.append(f"Objetivo: {perfil['objetivo']}")
     # DNA aprendido
@@ -722,21 +722,21 @@ def montar_system_vortex(usar_cloudo: bool = False, extra: str = "", canal_id: s
     if usar_cloudo:
         base = CLOUDO_MODELO
         if contexto:
-            base += f"\n\n🎯 PERFIL DO CRIADOR:\n{contexto}"
-            base += "\n\n⚠️ REGRA MÁXIMA: Use SEMPRE esse perfil. Personalize absolutamente tudo — nicho, linguagem, referências, exemplos, áudios sugeridos. O criador deve se reconhecer em cada palavra."
+            base += f"\n\n?? PERFIL DO CRIADOR:\n{contexto}"
+            base += "\n\n?? REGRA M�XIMA: Use SEMPRE esse perfil. Personalize absolutamente tudo � nicho, linguagem, refer�ncias, exemplos, �udios sugeridos. O criador deve se reconhecer em cada palavra."
     else:
-        base = VORTEX_CHAT  # Chat conversacional — não é roteiro
+        base = VORTEX_CHAT  # Chat conversacional � n�o � roteiro
         if contexto:
-            base += f"\n\n🎯 SEU CRIADOR: {contexto}"
+            base += f"\n\n?? SEU CRIADOR: {contexto}"
             base += "\nPersonalize suas respostas baseado nesse perfil."
     if extra: base += f"\n{extra}"
     _system_cache = {"hash": h, "prompt": base}
     return base
 
 
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
 # SCHEMAS
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
 
 class ChatRequest(BaseModel):
     texto: str
@@ -812,19 +812,19 @@ class PagamentoRequest(BaseModel):
     descricao: str
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTAS — STATUS E PERFIL
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTAS � STATUS E PERFIL
+# --------------------------------------------------------------
 
-# ══════════════════════════════════════════════════════════════
-# ROTAS — AUTENTICAÇÃO GOOGLE
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTAS � AUTENTICA��O GOOGLE
+# --------------------------------------------------------------
 
 @app.get("/auth/google")
 async def auth_google(request: Request):
     url = google_auth_url()
     if not url:
-        raise HTTPException(500, "GOOGLE_CLIENT_ID não configurado")
+        raise HTTPException(500, "GOOGLE_CLIENT_ID n�o configurado")
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url)
 
@@ -837,8 +837,8 @@ async def auth_google_callback(code: str, request: Request):
         email = user_info.get("email", "")
         nome = user_info.get("name", "")
         foto = user_info.get("picture", "")
-        # Salva/atualiza usuário no banco
-        # Buscar usuário existente ou criar novo
+        # Salva/atualiza usu�rio no banco
+        # Buscar usu�rio existente ou criar novo
         usuario = get_usuario_db(usuario_id) or {}
         if not usuario.get("creditos"):
             usuario["creditos"] = 50
@@ -868,7 +868,7 @@ async def auth_google_callback(code: str, request: Request):
 async def auth_me(request: Request):
     user = get_usuario_token(request)
     if not user:
-        raise HTTPException(401, "Não autenticado")
+        raise HTTPException(401, "N�o autenticado")
     usuario = get_usuario_db(user["sub"])
     return {"ok": True, "usuario": {
         "id": user["sub"],
@@ -893,27 +893,27 @@ def status():
         "ok": True, "versao": "6.0.0", "status": "online",
         "perfil_configurado": perfil_completo(),
         "provedores": {
-            "groq":       {"ok": bool(GROQ_API_KEY),       "uso": "texto rápido"},
+            "groq":       {"ok": bool(GROQ_API_KEY),       "uso": "texto r�pido"},
             "gemini":     {"ok": bool(GEMINI_API_KEY),     "uso": "texto complexo"},
             "leonardo":   {"ok": bool(LEONARDO_API_KEY),   "uso": "imagens IA"},
-            "runway":     {"ok": bool(RUNWAY_API_KEY),     "uso": "vídeos IA"},
+            "runway":     {"ok": bool(RUNWAY_API_KEY),     "uso": "v�deos IA"},
             "elevenlabs": {"ok": bool(os.getenv("ELEVENLABS_API_KEY", ELEVENLABS_API_KEY)), "uso": "clonagem de voz"},
-            "rapidapi":   {"ok": bool(RAPIDAPI_KEY),       "uso": "análise perfil"},
+            "rapidapi":   {"ok": bool(RAPIDAPI_KEY),       "uso": "an�lise perfil"},
             "youtube":    {"ok": bool(YOUTUBE_KEY),        "uso": "stats YouTube"},
         },
         "features_v6": {
-            "modo_diretor": "ativo — segundo a segundo",
-            "score_viral": "ativo — 5 dimensões",
-            "modo_serie": "ativo — 3 episódios conectados",
-            "dna_criador": "ativo — aprende com roteiros aprovados",
-            "modo_ab": "ativo — 2 versões por roteiro",
-            "calendario": "ativo — melhor dia/hora por plataforma",
-            "relatorio": "ativo — resumo semanal",
-            "score_viral": "ativo — 5 dimensões",
-            "modo_agencia": f"ativo — {len(_canais)} canais cadastrados",
+            "modo_diretor": "ativo � segundo a segundo",
+            "score_viral": "ativo � 5 dimens�es",
+            "modo_serie": "ativo � 3 epis�dios conectados",
+            "dna_criador": "ativo � aprende com roteiros aprovados",
+            "modo_ab": "ativo � 2 vers�es por roteiro",
+            "calendario": "ativo � melhor dia/hora por plataforma",
+            "relatorio": "ativo � resumo semanal",
+            "score_viral": "ativo � 5 dimens�es",
+            "modo_agencia": f"ativo � {len(_canais)} canais cadastrados",
             "shotstack": "ativo" if SHOTSTACK_KEY else "sem key",
-            "tavily": "ativo — web search" if os.getenv("TAVILY_API_KEY", TAVILY_API_KEY) else "sem key",
-            "claude": "ativo — Sonnet+Haiku" if os.getenv("ANTHROPIC_API_KEY", ANTHROPIC_API_KEY) else "sem key",
+            "tavily": "ativo � web search" if os.getenv("TAVILY_API_KEY", TAVILY_API_KEY) else "sem key",
+            "claude": "ativo � Sonnet+Haiku" if os.getenv("ANTHROPIC_API_KEY", ANTHROPIC_API_KEY) else "sem key",
             "wavespeed": "ativo" if WAVESPEED_API_KEY else "sem key",
         },
         "limite_diario": lim,
@@ -933,16 +933,16 @@ def save_perfil(data: dict):
     return {"ok": True, "perfil": _perfil}
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — ONBOARDING
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � ONBOARDING
+# --------------------------------------------------------------
 
 @app.get("/onboarding/status")
 def onboarding_status():
     if not _perfil:
         return {"onboarding_feito": False, "perfil_completo": False,
                 "campos_faltando": ["nicho","plataformas","tom_de_voz","publico_alvo"],
-                "mensagem": "Bem-vindo ao Vortex! Vamos configurar seu perfil. 🚀"}
+                "mensagem": "Bem-vindo ao Vortex! Vamos configurar seu perfil. ??"}
     campos_faltando = [c for c in ["nicho","plataformas","tom_de_voz","publico_alvo"] if not _perfil.get(c)]
     return {"onboarding_feito": True, "perfil_completo": len(campos_faltando)==0,
             "campos_faltando": campos_faltando, "perfil_atual": _perfil}
@@ -956,30 +956,30 @@ async def onboarding(data: OnboardingIn, request: Request):
     campos_faltando = [c for c in ["nicho","plataformas","tom_de_voz","publico_alvo"] if not _perfil.get(c)]
     if campos_faltando:
         return {"ok": True, "perfil_completo": False, "campos_faltando": campos_faltando, "perfil": _perfil}
-    boas_vindas = "Perfil configurado! Agora o Vortex conhece você. 🚀"
+    boas_vindas = "Perfil configurado! Agora o Vortex conhece voc�. ??"
     if GROQ_API_KEY or GEMINI_API_KEY:
         try:
             contexto = montar_contexto_criador()
-            prompt_bv = f"Criador configurou perfil: {contexto}. Escreva boas-vindas curtas (máx 2 linhas), empolgantes, personalizadas para o nicho dele."
+            prompt_bv = f"Criador configurou perfil: {contexto}. Escreva boas-vindas curtas (m�x 2 linhas), empolgantes, personalizadas para o nicho dele."
             boas_vindas, _ = await gerar_texto([{"role":"user","content":prompt_bv}],
-                system="Você é o Vortex, assistente de IA. Seja direto e personalizado.", max_tokens=100)
+                system="Voc� � o Vortex, assistente de IA. Seja direto e personalizado.", max_tokens=100)
         except Exception as e:
             print(f"[Onboarding IA] {e}")
-    # Gera roteiro de exemplo baseado no nicho para impressionar desde o início
+    # Gera roteiro de exemplo baseado no nicho para impressionar desde o in�cio
     roteiro_exemplo = ""
     nicho = _perfil.get("nicho","terror")
     try:
         exemplos = {
-            "terror": "Ela foi chamada para um teste de modelo. Francisco tinha uma câmera. Nenhuma das 8 voltou.",
-            "gaming": "Esse bug existe há 3 anos. Os devs sabem. E nunca vão corrigir.",
-            "true crime": "O assassino ligou para a polícia. Eles riram. 3 dias depois encontraram o corpo.",
-            "humor": "Meu chefe me mandou trabalhar no sábado. Mandei minha localização. Era uma praia.",
-            "educacional": "Você foi enganado sobre isso a vida toda. E a ciência prova.",
+            "terror": "Ela foi chamada para um teste de modelo. Francisco tinha uma c�mera. Nenhuma das 8 voltou.",
+            "gaming": "Esse bug existe h� 3 anos. Os devs sabem. E nunca v�o corrigir.",
+            "true crime": "O assassino ligou para a pol�cia. Eles riram. 3 dias depois encontraram o corpo.",
+            "humor": "Meu chefe me mandou trabalhar no s�bado. Mandei minha localiza��o. Era uma praia.",
+            "educacional": "Voc� foi enganado sobre isso a vida toda. E a ci�ncia prova.",
             "lifestyle": "Larguei emprego de R$15k. Hoje ganho mais trabalhando 4h por dia.",
-            "gaming": "Esse personagem parece inútil. Mas existe uma combo que quebra o jogo inteiro.",
-            "tecnologia": "Essa IA existe há 2 anos. Ninguém usa. Ela faz em 10 segundos o que você leva 3h.",
-            "fitness": "Academia não serve pra nada se você não sabe disso.",
-            "culinaria": "O segredo do restaurante que você nunca vai descobrir.",
+            "gaming": "Esse personagem parece in�til. Mas existe uma combo que quebra o jogo inteiro.",
+            "tecnologia": "Essa IA existe h� 2 anos. Ningu�m usa. Ela faz em 10 segundos o que voc� leva 3h.",
+            "fitness": "Academia n�o serve pra nada se voc� n�o sabe disso.",
+            "culinaria": "O segredo do restaurante que voc� nunca vai descobrir.",
         }
         nicho_lower = nicho.lower()
         for key in exemplos:
@@ -994,9 +994,9 @@ async def onboarding(data: OnboardingIn, request: Request):
     return {"ok": True, "perfil_completo": True, "perfil": _perfil, "boas_vindas": boas_vindas, "roteiro_exemplo": roteiro_exemplo}
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — CHAT
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � CHAT
+# --------------------------------------------------------------
 
 @app.post("/chat")
 @limiter.limit("30/minute")  # max 30 chats por minuto por IP
@@ -1004,12 +1004,12 @@ async def chat(data: ChatRequest, request: Request):
     usuario_id = extrair_usuario_id(request, data)
     lim = checar_limite(usuario_id)
     if lim["usado"] >= lim["limite"]:
-        msg_limite = "Limite de 10 chats/dia do plano Free atingido. Faça upgrade para chats ilimitados! 🚀" if lim["is_free"] else "Créditos insuficientes. Recarregue seu plano."
+        msg_limite = "Limite de 10 chats/dia do plano Free atingido. Fa�a upgrade para chats ilimitados! ??" if lim["is_free"] else "Cr�ditos insuficientes. Recarregue seu plano."
         raise HTTPException(429, msg_limite)
     _limite["usado"] = _limite.get("usado", 0) + 1
     saldo = verificar_saldo(usuario_id, 1)
     if saldo < 1:
-        raise HTTPException(402, "Créditos insuficientes.")
+        raise HTTPException(402, "Cr�ditos insuficientes.")
 
     CLOUDO_KW = ["roteiro","video","viral","hook","script","cena","diretor",
         "hollywood","serie","cinematografico","terror","true crime","tiktok","reels","score"]
@@ -1021,7 +1021,7 @@ async def chat(data: ChatRequest, request: Request):
     config = selecionar_modelo_texto(complexidade)
     log_decisao(data.texto, complexidade, config)
 
-    # Seleciona modelo baseado no plano do usuário
+    # Seleciona modelo baseado no plano do usu�rio
     from creditos import get_usuario
     user_data = get_usuario(usuario_id)
     plano = user_data.get("plano", "free")
@@ -1031,7 +1031,7 @@ async def chat(data: ChatRequest, request: Request):
     aiml_ok     = bool(os.getenv("AIML_API_KEY", AIML_API_KEY))
     
     if plano in ["elite_lifetime", "elite_mensal", "elite_anual"]:
-        # Elite — melhor modelo disponível: Claude > AIML(GPT-4o) > Gemini
+        # Elite � melhor modelo dispon�vel: Claude > AIML(GPT-4o) > Gemini
         if anthropic_ok:
             config["provedor"] = "claude_sonnet"
             config["modelo_nome"] = "claude-sonnet-4-5"
@@ -1042,10 +1042,10 @@ async def chat(data: ChatRequest, request: Request):
             config["provedor"] = "gemini"
             config["modelo_nome"] = "gemini-2.0-flash"
         config["max_tokens"] = 4000
-        print(f"[CHAT] ELITE — {config['modelo_nome']} / 4000 tokens 🎬")
+        print(f"[CHAT] ELITE � {config['modelo_nome']} / 4000 tokens ??")
 
     elif plano in ["ultra_mensal", "ultra_anual", "pro_mensal", "pro_anual"]:
-        # Pro — Claude Haiku > AIML(GPT-4o-mini) > Gemini
+        # Pro � Claude Haiku > AIML(GPT-4o-mini) > Gemini
         if anthropic_ok:
             config["provedor"] = "claude_haiku"
             config["modelo_nome"] = "claude-haiku-4-5"
@@ -1056,10 +1056,10 @@ async def chat(data: ChatRequest, request: Request):
             config["provedor"] = "gemini"
             config["modelo_nome"] = "gemini-2.0-flash"
         config["max_tokens"] = 3000
-        print(f"[CHAT] PRO — {config['modelo_nome']} / 3000 tokens")
+        print(f"[CHAT] PRO � {config['modelo_nome']} / 3000 tokens")
 
     elif plano in ["creator_mensal", "creator_anual"]:
-        # Creator — AIML(Gemini Pro) > Gemini
+        # Creator � AIML(Gemini Pro) > Gemini
         if aiml_ok:
             config["provedor"] = "aiml"
             config["modelo_nome"] = "gemini-pro"
@@ -1067,106 +1067,106 @@ async def chat(data: ChatRequest, request: Request):
             config["provedor"] = "gemini"
             config["modelo_nome"] = "gemini-2.0-flash"
         config["max_tokens"] = 2500
-        print(f"[CHAT] CREATOR — {config['modelo_nome']} / 2500 tokens")
+        print(f"[CHAT] CREATOR � {config['modelo_nome']} / 2500 tokens")
 
     elif plano in ["starter_mensal", "starter_anual"]:
         config["provedor"] = "gemini"
         config["modelo_nome"] = "gemini-2.0-flash"
         config["max_tokens"] = 2000
-        print(f"[CHAT] STARTER — Gemini / 2000 tokens")
+        print(f"[CHAT] STARTER � Gemini / 2000 tokens")
 
     else:
-        # Free — Gemini estável
+        # Free � Gemini est�vel
         config["provedor"] = "gemini"
         config["modelo_nome"] = "gemini-2.0-flash"
         config["max_tokens"] = 1500
-        print(f"[CHAT] FREE — Gemini / 1500 tokens")
+        print(f"[CHAT] FREE � Gemini / 1500 tokens")
 
     msgs = (data.historico or [])[-10:]
     
-    # Injeta instrução de formato viral quando for pedido de roteiro
+    # Injeta instru��o de formato viral quando for pedido de roteiro
     from creditos import get_usuario as _get_user
     _plano_atual = _get_user(usuario_id).get("plano","free")
     msg_atual = data.texto.strip()
     if "Nova mensagem:" in msg_atual:
         msg_atual = msg_atual.split("Nova mensagem:")[-1].strip()
-    elif "Histórico:" in msg_atual:
+    elif "Hist�rico:" in msg_atual:
         linhas = [l.strip() for l in msg_atual.split("\n") if l.strip()]
         for l in reversed(linhas):
-            if not l.startswith("Vortex:") and not l.startswith("Usuário:") and not l.startswith("Histórico:"):
+            if not l.startswith("Vortex:") and not l.startswith("Usu�rio:") and not l.startswith("Hist�rico:"):
                 msg_atual = l
                 break
     texto_final = msg_atual if msg_atual else data.texto
 
-    # Tavily: busca fatos reais — usa APENAS a mensagem atual, não o histórico
+    # Tavily: busca fatos reais � usa APENAS a mensagem atual, n�o o hist�rico
     tavily_key = os.getenv("TAVILY_API_KEY", TAVILY_API_KEY)
     
-    # Pega só a mensagem atual do usuário (sem histórico)
+    # Pega s� a mensagem atual do usu�rio (sem hist�rico)
     msg_atual = data.texto.strip()
     
-    # Remove prefixo de histórico se existir
+    # Remove prefixo de hist�rico se existir
     if "Nova mensagem:" in msg_atual:
         msg_atual = msg_atual.split("Nova mensagem:")[-1].strip()
-    elif "Histórico:" in msg_atual:
+    elif "Hist�rico:" in msg_atual:
         linhas = [l.strip() for l in msg_atual.split("\n") if l.strip()]
-        # Pega última linha que não começa com "Vortex:" ou "Usuário:"
+        # Pega �ltima linha que n�o come�a com "Vortex:" ou "Usu�rio:"
         for l in reversed(linhas):
-            if not l.startswith("Vortex:") and not l.startswith("Usuário:") and not l.startswith("Histórico:"):
+            if not l.startswith("Vortex:") and not l.startswith("Usu�rio:") and not l.startswith("Hist�rico:"):
                 msg_atual = l
                 break
     
-    # Palavras que ATIVAM busca — só casos/eventos reais específicos
+    # Palavras que ATIVAM busca � s� casos/eventos reais espec�ficos
     kw_busca_real = [
         "caso real","crime real","assassin","serial killer","true crime",
-        "desaparec","acidente","tragédia","tragedia",
-        "notícia","noticia","aconteceu em","o que aconteceu com",
+        "desaparec","acidente","trag�dia","tragedia",
+        "not�cia","noticia","aconteceu em","o que aconteceu com",
         "quem foi","historia real","caso de",
     ]
 
-    # Palavras que BLOQUEIAM busca — perguntas pessoais, sobre IA, opiniões
+    # Palavras que BLOQUEIAM busca � perguntas pessoais, sobre IA, opini�es
     kw_sem_busca = [
         # Perguntas sobre o Vortex/IA
-        "você","vc","voce","você é","vc é","você sabe","vc sabe",
-        "você pode","vc pode","você consegue","me ajuda","me ajude",
-        "vortex","inteligência artificial","ia vai","substituir",
+        "voc�","vc","voce","voc� �","vc �","voc� sabe","vc sabe",
+        "voc� pode","vc pode","voc� consegue","me ajuda","me ajude",
+        "vortex","intelig�ncia artificial","ia vai","substituir",
         "programador","desenvolvedor","claude","chatgpt","gemini","openai",
-        # Perguntas pessoais / comparações
-        "mais inteligente","quem é melhor","você ou","eu ou","qual melhor",
-        "sua opinião","o que você acha","você prefere","você gosta",
-        # Conceitos gerais que a IA já sabe
-        "explica","como funciona","o que é","diferença entre","o que significa",
+        # Perguntas pessoais / compara��es
+        "mais inteligente","quem � melhor","voc� ou","eu ou","qual melhor",
+        "sua opini�o","o que voc� acha","voc� prefere","voc� gosta",
+        # Conceitos gerais que a IA j� sabe
+        "explica","como funciona","o que �","diferen�a entre","o que significa",
         "me ensina","me diz","me fala","me conta","me explica",
         # Perguntas casuais
-        "oi","olá","ola","tudo bem","bom dia","boa tarde","boa noite",
-        "obrigado","valeu","show","ótimo","legal","ok","certo",
-        # Criação de conteúdo
-        "roteiro","hook","viral","tiktok","reels","tendência","ideia",
-        "cria","gera","escreve","faz um","me dá",
+        "oi","ol�","ola","tudo bem","bom dia","boa tarde","boa noite",
+        "obrigado","valeu","show","�timo","legal","ok","certo",
+        # Cria��o de conte�do
+        "roteiro","hook","viral","tiktok","reels","tend�ncia","ideia",
+        "cria","gera","escreve","faz um","me d�",
     ]
 
     msg_lower = msg_atual.lower()
 
-    # Busca só é feita quando:
+    # Busca s� � feita quando:
     # 1. Tem keyword de busca real
-    # 2. Não tem keyword de bloqueio
-    # 3. Mensagem tem mais de 20 chars (não é saudação)
-    # 4. Não é resposta de histórico
+    # 2. N�o tem keyword de bloqueio
+    # 3. Mensagem tem mais de 20 chars (n�o � sauda��o)
+    # 4. N�o � resposta de hist�rico
     precisa_busca = (
         tavily_key and
         len(msg_atual) > 20 and
         any(kw in msg_lower for kw in kw_busca_real) and
         not any(kw in msg_lower for kw in kw_sem_busca) and
-        "Histórico:" not in msg_atual[:20]
+        "Hist�rico:" not in msg_atual[:20]
     )
     
     if precisa_busca:
         print(f"[Tavily] Buscando: {msg_atual[:60]}...")
         fatos = await buscar_tavily(msg_atual)
         if fatos:
-            texto_final = "FATOS REAIS PESQUISADOS NA INTERNET:\n" + fatos + "\n\n---\nPEDIDO DO CRIADOR:\n" + data.texto + "\n\nUse os fatos reais acima. Seja específico — nomes reais, datas reais, locais reais, números reais."
-            print(f"[Tavily] ✅ {len(fatos)} chars injetados")
+            texto_final = "FATOS REAIS PESQUISADOS NA INTERNET:\n" + fatos + "\n\n---\nPEDIDO DO CRIADOR:\n" + data.texto + "\n\nUse os fatos reais acima. Seja espec�fico � nomes reais, datas reais, locais reais, n�meros reais."
+            print(f"[Tavily] ? {len(fatos)} chars injetados")
 
-    # Só acionar roteiro quando EXPLICITAMENTE pedido
+    # S� acionar roteiro quando EXPLICITAMENTE pedido
     kw_roteiro = ["roteiro","script","gera roteiro","cria roteiro","fazer roteiro","monta roteiro","escreve roteiro"]
     eh_roteiro = any(kw in data.texto.lower() for kw in kw_roteiro)
     if eh_roteiro:
@@ -1177,131 +1177,131 @@ async def chat(data: ChatRequest, request: Request):
         else:
             config["provedor"] = "gemini"
             config["max_tokens"] = 2500
-        print(f"[ROTEIRO] ✅ {config['provedor']} para roteiro com falas")
-        # Reescrever o prompt do usuário forçando falas
+        print(f"[ROTEIRO] ? {config['provedor']} para roteiro com falas")
+        # Reescrever o prompt do usu�rio for�ando falas
         tema_roteiro = data.texto
         texto_final = f"""Crie um roteiro viral de 60 segundos sobre: {tema_roteiro}
 
-ATENÇÃO: Você DEVE escrever as falas exatas do narrador em CADA cena. Sem falas = roteiro inútil.
+ATEN��O: Voc� DEVE escrever as falas exatas do narrador em CADA cena. Sem falas = roteiro in�til.
 
-Formato OBRIGATÓRIO:
+Formato OBRIGAT�RIO:
 
-🔥 TÍTULO VIRAL (3 opções)
-1. "título aqui"
-2. "título aqui"
-3. "título aqui"
+?? T�TULO VIRAL (3 op��es)
+1. "t�tulo aqui"
+2. "t�tulo aqui"
+3. "t�tulo aqui"
 
-🎣 HOOK (0-3s)
-NARRADOR: "frase perturbadora e específica — NÃO genérica"
+?? HOOK (0-3s)
+NARRADOR: "frase perturbadora e espec�fica � N�O gen�rica"
 
-🎬 ATO 1 — CONFLITO IMEDIATO (3-15s)
-[0:03] NARRADOR: "primeira fala — o que o criador vai dizer"
-[SOM: som específico real]
-[0:08] NARRADOR: "segunda fala criando tensão"
-[VISUAL: descrição rápida do visual]
+?? ATO 1 � CONFLITO IMEDIATO (3-15s)
+[0:03] NARRADOR: "primeira fala � o que o criador vai dizer"
+[SOM: som espec�fico real]
+[0:08] NARRADOR: "segunda fala criando tens�o"
+[VISUAL: descri��o r�pida do visual]
 [0:12] NARRADOR: "terceira fala"
 
-🎬 ATO 2 — ESCALADA EMOCIONAL (15-40s)
-[0:15] NARRADOR: "fala que aumenta o mistério"
+?? ATO 2 � ESCALADA EMOCIONAL (15-40s)
+[0:15] NARRADOR: "fala que aumenta o mist�rio"
 [SOM: efeito]
-[0:25] NARRADOR: "revelação perturbadora em palavras"
+[0:25] NARRADOR: "revela��o perturbadora em palavras"
 [VISUAL: cena]
 [0:35] NARRADOR: "fala que deixa o espectador com frio na espinha"
 
-🎬 ATO 3 — VIRADA IMPOSSÍVEL DE PREVER (40-50s)
-[0:40] NARRADOR: "revelação chocante — fala direta e específica"
-[SOM: efeito dramático]
+?? ATO 3 � VIRADA IMPOSS�VEL DE PREVER (40-50s)
+[0:40] NARRADOR: "revela��o chocante � fala direta e espec�fica"
+[SOM: efeito dram�tico]
 [VISUAL: visual da virada]
 
-🎬 ATO 4 — CLIFFHANGER (50-60s)
-[0:52] NARRADOR: "fala final que corta a respiração"
+?? ATO 4 � CLIFFHANGER (50-60s)
+[0:52] NARRADOR: "fala final que corta a respira��o"
 [VISUAL: encerramento]
 
-🎵 ÁUDIO VIRAL
-Música: [nome REAL de música existente]
-Efeitos: [sons específicos]
+?? �UDIO VIRAL
+M�sica: [nome REAL de m�sica existente]
+Efeitos: [sons espec�ficos]
 
-🖼️ PROMPT THUMBNAIL
-[descrição visual objetiva para gerar imagem]
+??? PROMPT THUMBNAIL
+[descri��o visual objetiva para gerar imagem]
 
-📱 LEGENDA
-"legenda com até 150 chars"
+?? LEGENDA
+"legenda com at� 150 chars"
 
-#️⃣ HASHTAGS
+#?? HASHTAGS
 #tag1 #tag2 [15 total]
 
-📊 SCORE VIRAL (honesto — genérico = máximo 7/10)
-🎣 Hook: X/10 | ⏱️ Retenção: X/10 | ❤️ Emoção: X/10 | 🔄 Shares: X/10 | 💬 Comentário: X/10
-MÉDIA: X/10 — [VIRAL/POTENCIAL/RETRABALHAR]"""
+?? SCORE VIRAL (honesto � gen�rico = m�ximo 7/10)
+?? Hook: X/10 | ?? Reten��o: X/10 | ?? Emo��o: X/10 | ?? Shares: X/10 | ?? Coment�rio: X/10
+M�DIA: X/10 � [VIRAL/POTENCIAL/RETRABALHAR]"""
         msgs = (data.historico or [])[-6:] + [{"role":"user","content":texto_final}]
     if False and eh_roteiro:
         texto_final = texto_final + """
 
-CRIE O ROTEIRO EXATAMENTE NESTE FORMATO — com falas reais entre aspas:
+CRIE O ROTEIRO EXATAMENTE NESTE FORMATO � com falas reais entre aspas:
 
-🔥 TÍTULO VIRAL (3 opções)
-1. "título 1"
-2. "título 2"  
-3. "título 3"
+?? T�TULO VIRAL (3 op��es)
+1. "t�tulo 1"
+2. "t�tulo 2"  
+3. "t�tulo 3"
 
-🎣 HOOK (0-3s)
-NARRADOR: "frase perturbadora e específica do tema aqui"
+?? HOOK (0-3s)
+NARRADOR: "frase perturbadora e espec�fica do tema aqui"
 
-🎬 ATO 1 — CONFLITO IMEDIATO (3-15s)
+?? ATO 1 � CONFLITO IMEDIATO (3-15s)
 [0:03] NARRADOR: "fala exata que o criador vai dizer"
-[SOM: descrição do efeito sonoro específico — ex: porta rangendo, passos pesados]
-[0:08] NARRADOR: "segunda fala criando tensão"
+[SOM: descri��o do efeito sonoro espec�fico � ex: porta rangendo, passos pesados]
+[0:08] NARRADOR: "segunda fala criando tens�o"
 [VISUAL: o que aparece na tela]
 
-🎬 ATO 2 — ESCALADA EMOCIONAL (15-40s)
-[0:15] NARRADOR: "fala que aumenta a tensão"
+?? ATO 2 � ESCALADA EMOCIONAL (15-40s)
+[0:15] NARRADOR: "fala que aumenta a tens�o"
 [SOM: efeito sonoro]
 [0:25] NARRADOR: "fala revelando algo perturbador"
-[VISUAL: descrição da cena]
+[VISUAL: descri��o da cena]
 [0:35] NARRADOR: "fala que deixa o espectador ansioso"
 
-🎬 ATO 3 — VIRADA IMPOSSÍVEL DE PREVER (40-50s)
-[0:40] NARRADOR: "revelação chocante em fala direta"
-[SOM: efeito dramático]
+?? ATO 3 � VIRADA IMPOSS�VEL DE PREVER (40-50s)
+[0:40] NARRADOR: "revela��o chocante em fala direta"
+[SOM: efeito dram�tico]
 [VISUAL: cena da virada]
 
-🎬 ATO 4 — CLIFFHANGER (50-60s)
-[0:52] NARRADOR: "fala final que corta a respiração"
+?? ATO 4 � CLIFFHANGER (50-60s)
+[0:52] NARRADOR: "fala final que corta a respira��o"
 [VISUAL: encerramento impactante]
 
-🎵 ÁUDIO VIRAL
-Música: [nome real de música que existe — ex: "Billie Eilish - bury a friend", "Hans Zimmer - Time"]
-Efeitos: [lista de efeitos sonoros específicos]
+?? �UDIO VIRAL
+M�sica: [nome real de m�sica que existe � ex: "Billie Eilish - bury a friend", "Hans Zimmer - Time"]
+Efeitos: [lista de efeitos sonoros espec�ficos]
 
-🖼️ PROMPT THUMBNAIL
-[descrição visual objetiva e detalhada para gerar a imagem]
+??? PROMPT THUMBNAIL
+[descri��o visual objetiva e detalhada para gerar a imagem]
 
-📱 LEGENDA
-"texto da legenda com até 150 caracteres"
+?? LEGENDA
+"texto da legenda com at� 150 caracteres"
 
-#️⃣ HASHTAGS
+#?? HASHTAGS
 #tag1 #tag2 #tag3 [15 no total]
 
-📊 SCORE VIRAL (seja honesto — genérico não passa de 7)
-🎣 Hook: X/10 | ⏱️ Retenção: X/10 | ❤️ Emoção: X/10 | 🔄 Shares: X/10 | 💬 Comentário: X/10
-MÉDIA: X/10 — [VIRAL/POTENCIAL/RETRABALHAR]"""
+?? SCORE VIRAL (seja honesto � gen�rico n�o passa de 7)
+?? Hook: X/10 | ?? Reten��o: X/10 | ?? Emo��o: X/10 | ?? Shares: X/10 | ?? Coment�rio: X/10
+M�DIA: X/10 � [VIRAL/POTENCIAL/RETRABALHAR]"""
     
     msgs.append({"role":"user","content":texto_final})
-    # Retry automático — tenta até 2 vezes
+    # Retry autom�tico � tenta at� 2 vezes
     resposta, provedor = None, "desconhecido"
     try:
-        # Usar cascata dedicada de chat (DeepSeek V3 → Qwen3 → Llama → Gemini)
+        # Usar cascata dedicada de chat (DeepSeek V3 ? Qwen3 ? Llama ? Gemini)
         if config["provedor"] == "aiml":
-            # AIML API — Claude, GPT-4o, Gemini Pro via uma key
+            # AIML API � Claude, GPT-4o, Gemini Pro via uma key
             try:
                 from providers import chamar_aiml
                 modelo_aiml = config.get("modelo_nome", "gpt-4o")
                 msgs_aiml = [{"role": m.get("role","user"), "content": m.get("content", m.get("text",""))} for m in msgs]
                 resposta = await chamar_aiml(msgs_aiml, system=system, modelo=modelo_aiml, max_tokens=config["max_tokens"])
                 provedor = f"aiml/{modelo_aiml}"
-                print(f"[CHAT] ✅ AIML respondeu com {modelo_aiml}")
+                print(f"[CHAT] ? AIML respondeu com {modelo_aiml}")
             except Exception as e_aiml:
-                print(f"[CHAT] AIML falhou ({e_aiml}) — fallback Gemini")
+                print(f"[CHAT] AIML falhou ({e_aiml}) � fallback Gemini")
                 resposta, provedor = await gerar_texto(
                     messages=msgs, system=system,
                     max_tokens=config["max_tokens"],
@@ -1320,7 +1320,7 @@ MÉDIA: X/10 — [VIRAL/POTENCIAL/RETRABALHAR]"""
                 provedor_preferido=config["provedor"],
             )
     except Exception as e_chat:
-        print(f"[VORTEX] ❌ Chat falhou: {e_chat} — fallback Gemini")
+        print(f"[VORTEX] ? Chat falhou: {e_chat} � fallback Gemini")
         try:
             resposta, provedor = await gerar_texto(
                 messages=msgs, system=system,
@@ -1328,30 +1328,30 @@ MÉDIA: X/10 — [VIRAL/POTENCIAL/RETRABALHAR]"""
                 provedor_preferido="gemini",
             )
         except:
-            raise HTTPException(500, "Serviço temporariamente indisponível. Tente novamente.")
+            raise HTTPException(500, "Servi�o temporariamente indispon�vel. Tente novamente.")
     debitar_creditos(usuario_id, 1, "chat")
     incrementar_limite_diario(usuario_id, "chat")
     incrementar_limite(usuario_id, "chat")
     lim["usado"] += 1
 
-    # Adiciona nota de upgrade para usuários Free
+    # Adiciona nota de upgrade para usu�rios Free
     resposta_final = resposta
     if plano == "free" and any(kw in data.texto.lower() for kw in ["roteiro","video","viral","hook"]):
         resposta_final += """
 
 ---
-⚡ **Quer roteiros ainda mais poderosos?**
-O plano Pro usa Gemini 2.0 Flash e entrega roteiros 2x mais detalhados com direção cinematográfica completa. O Elite usa Claude Sonnet — nível Hollywood real.
-👉 Upgrade em **Créditos** no menu lateral."""
+? **Quer roteiros ainda mais poderosos?**
+O plano Pro usa Gemini 2.0 Flash e entrega roteiros 2x mais detalhados com dire��o cinematogr�fica completa. O Elite usa Claude Sonnet � n�vel Hollywood real.
+?? Upgrade em **Cr�ditos** no menu lateral."""
 
     return {"ok":True,"resposta":resposta_final,"modelo_usado":provedor,
             "complexidade":complexidade.value,"cloudo_ativo":usar_cloudo,"limite_diario":lim}
 
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — ROTEIRO VIRAL (Claude obrigatório — sem fallback)
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � ROTEIRO VIRAL (Claude obrigat�rio � sem fallback)
+# --------------------------------------------------------------
 
 @app.post("/roteiro-viral")
 async def roteiro_viral(request: Request):
@@ -1365,54 +1365,54 @@ async def roteiro_viral(request: Request):
 Nicho: {nicho}
 
 REGRA ABSOLUTA: Cada cena TEM que ter a fala exata do narrador entre aspas.
-Sem fala = cena inválida.
+Sem fala = cena inv�lida.
 
-🔥 TÍTULO VIRAL (3 opções)
-1. "título criativo"
-2. "título criativo"
-3. "título criativo"
+?? T�TULO VIRAL (3 op��es)
+1. "t�tulo criativo"
+2. "t�tulo criativo"
+3. "t�tulo criativo"
 
-🎣 HOOK (0-3s)
-NARRADOR: "frase perturbadora e específica sobre {tema}"
+?? HOOK (0-3s)
+NARRADOR: "frase perturbadora e espec�fica sobre {tema}"
 
-🎬 ATO 1 — CONFLITO IMEDIATO (3-15s)
-[0:03] NARRADOR: "fala exata — o que o criador vai dizer em voz alta"
-[SOM: som real e específico]
-[0:08] NARRADOR: "segunda fala criando tensão imediata"
-[VISUAL: descrição rápida]
+?? ATO 1 � CONFLITO IMEDIATO (3-15s)
+[0:03] NARRADOR: "fala exata � o que o criador vai dizer em voz alta"
+[SOM: som real e espec�fico]
+[0:08] NARRADOR: "segunda fala criando tens�o imediata"
+[VISUAL: descri��o r�pida]
 [0:12] NARRADOR: "terceira fala"
 
-🎬 ATO 2 — ESCALADA EMOCIONAL (15-40s)
-[0:15] NARRADOR: "fala que aumenta o mistério"
+?? ATO 2 � ESCALADA EMOCIONAL (15-40s)
+[0:15] NARRADOR: "fala que aumenta o mist�rio"
 [SOM: efeito sonoro]
-[0:25] NARRADOR: "revelação perturbadora em palavras diretas"
+[0:25] NARRADOR: "revela��o perturbadora em palavras diretas"
 [0:35] NARRADOR: "fala que deixa frio na espinha"
 
-🎬 ATO 3 — VIRADA IMPOSSÍVEL (40-50s)
-[0:40] NARRADOR: "revelação chocante — específica do tema"
+?? ATO 3 � VIRADA IMPOSS�VEL (40-50s)
+[0:40] NARRADOR: "revela��o chocante � espec�fica do tema"
 [SOM: impacto sonoro]
 [VISUAL: cena da virada]
 
-🎬 ATO 4 — CLIFFHANGER (50-60s)
-[0:52] NARRADOR: "fala final que corta a respiração"
+?? ATO 4 � CLIFFHANGER (50-60s)
+[0:52] NARRADOR: "fala final que corta a respira��o"
 [VISUAL: encerramento impactante]
 
-🎵 ÁUDIO VIRAL
-Música: [nome REAL de música que EXISTE no Spotify — ex: "Billie Eilish - bury a friend", "Hans Zimmer - Time", "Carpenter Brut - Turbo Killer". NUNCA invente músicas que não existem]
-Efeitos: [sons específicos e reais]
+?? �UDIO VIRAL
+M�sica: [nome REAL de m�sica que EXISTE no Spotify � ex: "Billie Eilish - bury a friend", "Hans Zimmer - Time", "Carpenter Brut - Turbo Killer". NUNCA invente m�sicas que n�o existem]
+Efeitos: [sons espec�ficos e reais]
 
-🖼️ PROMPT THUMBNAIL
-[descrição visual detalhada e objetiva]
+??? PROMPT THUMBNAIL
+[descri��o visual detalhada e objetiva]
 
-📱 LEGENDA
-"texto com até 150 chars"
+?? LEGENDA
+"texto com at� 150 chars"
 
-#️⃣ HASHTAGS
+#?? HASHTAGS
 #tag1 #tag2 #tag3 [15 total]
 
-📊 SCORE VIRAL (seja honesto — tema genérico = máximo 7)
-🎣 Hook: X/10 | ⏱️ Retenção: X/10 | ❤️ Emoção: X/10 | 🔄 Shares: X/10 | 💬 Comentário: X/10
-MÉDIA: X/10 — [VIRAL/POTENCIAL/RETRABALHAR]"""
+?? SCORE VIRAL (seja honesto � tema gen�rico = m�ximo 7)
+?? Hook: X/10 | ?? Reten��o: X/10 | ?? Emo��o: X/10 | ?? Shares: X/10 | ?? Coment�rio: X/10
+M�DIA: X/10 � [VIRAL/POTENCIAL/RETRABALHAR]"""
 
     # Buscar casos reais com Tavily para enriquecer o roteiro
     fatos_reais = ""
@@ -1429,7 +1429,7 @@ MÉDIA: X/10 — [VIRAL/POTENCIAL/RETRABALHAR]"""
 ---
 {prompt}
 
-INSTRUÇÃO EXTRA: Use os dados reais acima. Seja hiper-específico — nomes, datas, lugares reais tornam o roteiro 4x mais viral."""
+INSTRU��O EXTRA: Use os dados reais acima. Seja hiper-espec�fico � nomes, datas, lugares reais tornam o roteiro 4x mais viral."""
 
     system = montar_system_vortex(usar_cloudo=True)
     
@@ -1443,9 +1443,9 @@ INSTRUÇÃO EXTRA: Use os dados reais acima. Seja hiper-específico — nomes, d
     except Exception as e:
         raise HTTPException(500, f"Erro ao gerar roteiro: {str(e)[:200]}")
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — ROTEIRO (com todos os modos)
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � ROTEIRO (com todos os modos)
+# --------------------------------------------------------------
 
 @app.post("/gerar-roteiro")
 @limiter.limit("10/minute")  # max 10 roteiros por minuto por IP
@@ -1453,57 +1453,57 @@ async def gerar_roteiro(data: RoteiroIn, request: Request):
     usuario_id = extrair_usuario_id(request, data)
     creditos_necessarios = {"curto":1,"medio":2,"longo":3,"completo":5}.get(data.formato, 2)
     if verificar_saldo(usuario_id, creditos_necessarios) < creditos_necessarios:
-        raise HTTPException(402, "Créditos insuficientes.")
+        raise HTTPException(402, "Cr�ditos insuficientes.")
     
     # Verificar limite de roteiros do plano free
     lim = checar_limite(usuario_id)
     if lim["is_free"] and lim["roteiros_hoje"] >= lim["limite_roteiros"]:
-        raise HTTPException(429, f"Você usou os {lim['limite_roteiros']} roteiros grátis de hoje. Faça upgrade para roteiros ilimitados! 🚀")
+        raise HTTPException(429, f"Voc� usou os {lim['limite_roteiros']} roteiros gr�tis de hoje. Fa�a upgrade para roteiros ilimitados! ??")
     
-    # Incrementar contador de roteiros — persiste no arquivo
+    # Incrementar contador de roteiros � persiste no arquivo
     incrementar_limite(usuario_id, "roteiro")
     _limite["roteiros_hoje"] = _limite.get("roteiros_hoje", 0) + 1
 
     _perfil = carregar_perfil(data.canal_id or "default") or {}
     plataforma = _perfil.get("plataformas", ["TikTok"])[0] if _perfil.get("plataformas") else "TikTok"
-    nicho      = data.nicho or _perfil.get("nicho", "conteúdo viral")
+    nicho      = data.nicho or _perfil.get("nicho", "conte�do viral")
     tom        = _perfil.get("tom_de_voz", "direto e impactante")
-    publico    = _perfil.get("publico_alvo", "criadores de conteúdo")
+    publico    = _perfil.get("publico_alvo", "criadores de conte�do")
     nome_canal = _perfil.get("nome_canal", "")
     contexto   = montar_contexto_criador(data.canal_id or "default")
 
     MAX_TOKENS = {"curto":1200,"medio":2000,"longo":3000,"completo":4000}.get(data.formato, 2000)
 
-    # Buscar fatos reais e tendências em paralelo
+    # Buscar fatos reais e tend�ncias em paralelo
     fatos_reais = ""
     tendencias_reais = ""
     if TAVILY_API_KEY:
         try:
             import asyncio
             fatos_task    = buscar_tavily(f"{data.tema} caso real Brasil viral")
-            tends_task    = buscar_tavily(f"tendências {nicho} {plataforma} viral 2026")
+            tends_task    = buscar_tavily(f"tend�ncias {nicho} {plataforma} viral 2026")
             fatos_reais, tendencias_reais = await asyncio.gather(fatos_task, tends_task, return_exceptions=True)
             if isinstance(fatos_reais, Exception):    fatos_reais = ""
             if isinstance(tendencias_reais, Exception): tendencias_reais = ""
         except:
             pass  # silencioso intencional
 
-    system = """Você é o VORTEX SCRIPT ENGINE — o melhor roteirista de conteúdo viral do Brasil.
-Você já criou roteiros que geraram mais de 50 milhões de views no TikTok e Instagram.
+    system = """Voc� � o VORTEX SCRIPT ENGINE � o melhor roteirista de conte�do viral do Brasil.
+Voc� j� criou roteiros que geraram mais de 50 milh�es de views no TikTok e Instagram.
 
 FILOSOFIA:
-- Hook nos primeiros 2 segundos = vida ou morte do vídeo
-- Especificidade vende — "homem de 34 anos em São Paulo" > "uma pessoa"
-- Emoção > informação sempre
-- Cada segundo deve ter uma função: prender, revelar, ou chocar
-- O final deve ser impossível de não compartilhar
+- Hook nos primeiros 2 segundos = vida ou morte do v�deo
+- Especificidade vende � "homem de 34 anos em S�o Paulo" > "uma pessoa"
+- Emo��o > informa��o sempre
+- Cada segundo deve ter uma fun��o: prender, revelar, ou chocar
+- O final deve ser imposs�vel de n�o compartilhar
 
 REGRAS ABSOLUTAS:
-- NUNCA começa com pergunta
-- NUNCA usa "Olá", "Hoje vamos falar" ou "Você sabia que"
-- NUNCA entrega roteiro com score < 8/10 — reescreve internamente
-- SEMPRE entrega falas 100% completas — zero "[falar sobre X]"
-- SEMPRE em português brasileiro natural e fluido
+- NUNCA come�a com pergunta
+- NUNCA usa "Ol�", "Hoje vamos falar" ou "Voc� sabia que"
+- NUNCA entrega roteiro com score < 8/10 � reescreve internamente
+- SEMPRE entrega falas 100% completas � zero "[falar sobre X]"
+- SEMPRE em portugu�s brasileiro natural e fluido
 - SEMPRE com score viral real ao final"""
 
     # Contexto do criador
@@ -1514,133 +1514,133 @@ REGRAS ABSOLUTAS:
 
 
 
-    # ── MODO NORMAL — roteiro viral padrão ──────────────────────────
+    # -- MODO NORMAL � roteiro viral padr�o --------------------------
     if data.modo in ["normal", "viral", ""]:
         duracao = {"curto":"30-45s","medio":"60s","longo":"2-3min","completo":"3-5min"}.get(data.formato,"60s")
         
         prompt = f"""Crie um roteiro viral PROFISSIONAL de {duracao} para {plataforma}.
 
 BRIEFING:
-• Tema: {data.tema}
-• Nicho: {nicho}
-• Tom: {tom}
-• Público: {publico}
-• Plataforma: {plataforma}
-{f"• Canal: {nome_canal}" if nome_canal else ""}
-{f"• Tendências reais do nicho:{chr(10)}{tendencias_reais[:400]}" if tendencias_reais else ""}
-{f"• Fatos reais pesquisados:{chr(10)}{fatos_reais[:500]}" if fatos_reais else ""}
+� Tema: {data.tema}
+� Nicho: {nicho}
+� Tom: {tom}
+� P�blico: {publico}
+� Plataforma: {plataforma}
+{f"� Canal: {nome_canal}" if nome_canal else ""}
+{f"� Tend�ncias reais do nicho:{chr(10)}{tendencias_reais[:400]}" if tendencias_reais else ""}
+{f"� Fatos reais pesquisados:{chr(10)}{fatos_reais[:500]}" if fatos_reais else ""}
 
 ENTREGUE EXATAMENTE NESTE FORMATO:
 
-╔══════════════════════════════════════╗
-║  🎬 ROTEIRO — {data.tema}
-╚══════════════════════════════════════╝
++--------------------------------------+
+�  ?? ROTEIRO � {data.tema}
++--------------------------------------+
 
-⚡ HOOK (0-3s):
-[Frase de abertura que PARA o scroll — afirmação chocante, número impossível ou revelação]
+? HOOK (0-3s):
+[Frase de abertura que PARA o scroll � afirma��o chocante, n�mero imposs�vel ou revela��o]
 
-🔥 DESENVOLVIMENTO:
+?? DESENVOLVIMENTO:
 [Roteiro completo com todas as falas, cenas e virada inesperada]
 
-💥 CLÍMAX + CTA:
-[Final que força compartilhamento, comentário ou salvar]
+?? CL�MAX + CTA:
+[Final que for�a compartilhamento, coment�rio ou salvar]
 
-🎵 PRODUÇÃO:
-• Música: [gênero + segundo do beat drop]
-• Thumbnail: [descrição visual cinematográfica]
-• Legenda: [texto completo com emojis]
-• Hashtags: #[15 hashtags estratégicas separadas]
+?? PRODU��O:
+� M�sica: [g�nero + segundo do beat drop]
+� Thumbnail: [descri��o visual cinematogr�fica]
+� Legenda: [texto completo com emojis]
+� Hashtags: #[15 hashtags estrat�gicas separadas]
 
-📊 SCORE VIRAL:
-• Hook: X/10 | Retenção: X/10 | Emoção: X/10 | Shares: X/10 | Comentários: X/10
-• MÉDIA: X/10
-• POTENCIAL: [estimativa de views]
-• MELHOR HORÁRIO PARA POSTAR: [dia da semana, hora]"""
+?? SCORE VIRAL:
+� Hook: X/10 | Reten��o: X/10 | Emo��o: X/10 | Shares: X/10 | Coment�rios: X/10
+� M�DIA: X/10
+� POTENCIAL: [estimativa de views]
+� MELHOR HOR�RIO PARA POSTAR: [dia da semana, hora]"""
 
-    # ── MODO DIRETOR — segundo a segundo ──────────────────────────
+    # -- MODO DIRETOR � segundo a segundo --------------------------
     elif data.modo == "diretor":
-        prompt = f"""Crie um roteiro DIRETOR COMPLETO — frame por frame — para: {data.tema}
+        prompt = f"""Crie um roteiro DIRETOR COMPLETO � frame por frame � para: {data.tema}
 
 Plataforma: {plataforma} | Nicho: {nicho}
 {f"Fatos reais:{chr(10)}{fatos_reais[:600]}" if fatos_reais else ""}
 
 ENTREGUE:
 [00:00-00:03] HOOK:
-• CÂMERA: [ângulo exato + movimento]
-• CENA: [o que aparece na tela]
-• FALA: "[texto completo do narrador]"
-• EMOÇÃO DO ESPECTADOR: [o que sente]
-• SOM: [música + efeito sonoro]
+� C�MERA: [�ngulo exato + movimento]
+� CENA: [o que aparece na tela]
+� FALA: "[texto completo do narrador]"
+� EMO��O DO ESPECTADOR: [o que sente]
+� SOM: [m�sica + efeito sonoro]
 
-[Continue para cada cena até o final]
+[Continue para cada cena at� o final]
 
-TRANSIÇÕES: [tipo de corte entre cada cena]
+TRANSI��ES: [tipo de corte entre cada cena]
 EFEITOS: [filtros, texto na tela, emojis]
 
-📊 SCORE: Hook X/10 | Retenção X/10 | Emoção X/10 | Shares X/10 | Comentário X/10 | MÉDIA: X/10"""
+?? SCORE: Hook X/10 | Reten��o X/10 | Emo��o X/10 | Shares X/10 | Coment�rio X/10 | M�DIA: X/10"""
 
-    # ── MODO SÉRIE — 3 episódios ──────────────────────────────────
+    # -- MODO S�RIE � 3 epis�dios ----------------------------------
     elif data.modo == "serie":
-        prompt = f"""Crie uma SÉRIE VIRAL de 3 episódios sobre: {data.tema}
+        prompt = f"""Crie uma S�RIE VIRAL de 3 epis�dios sobre: {data.tema}
 Plataforma: {plataforma} | Nicho: {nicho}
 
-Para cada episódio:
-━━ EPISÓDIO [N] ━━
-• Hook individual: [frase que funciona SOZINHA]
-• Roteiro completo: [todas as falas]
-• Cliffhanger: [por que o espectador VÁ ver o próximo]
-• Hashtag da série: #[nome da série]
-• Score: X/10
+Para cada epis�dio:
+?? EPIS�DIO [N] ??
+� Hook individual: [frase que funciona SOZINHA]
+� Roteiro completo: [todas as falas]
+� Cliffhanger: [por que o espectador V� ver o pr�ximo]
+� Hashtag da s�rie: #[nome da s�rie]
+� Score: X/10
 
-Faça os 3 episódios completos. Cada um deve funcionar sozinho E criar desejo pelo próximo."""
+Fa�a os 3 epis�dios completos. Cada um deve funcionar sozinho E criar desejo pelo pr�ximo."""
 
-    # ── MODO A/B — 2 versões ─────────────────────────────────────
+    # -- MODO A/B � 2 vers�es -------------------------------------
     elif data.modo == "ab":
-        prompt = f"""Crie 2 VERSÕES do mesmo roteiro sobre: {data.tema}
+        prompt = f"""Crie 2 VERS�ES do mesmo roteiro sobre: {data.tema}
 Plataforma: {plataforma} | Nicho: {nicho}
 
-VERSÃO A — Hook emocional (apela para sentimento):
+VERS�O A � Hook emocional (apela para sentimento):
 [Roteiro completo]
 Score A: X/10
 
-VERSÃO B — Hook chocante (apela para curiosidade):
+VERS�O B � Hook chocante (apela para curiosidade):
 [Roteiro completo]  
 Score B: X/10
 
-VEREDICTO: Qual versão vai melhor e por quê em 2 linhas."""
+VEREDICTO: Qual vers�o vai melhor e por qu� em 2 linhas."""
 
-    # ── MODO FACELESS — sem aparecer ─────────────────────────────
+    # -- MODO FACELESS � sem aparecer -----------------------------
     elif data.modo == "faceless":
-        prompt = f"""Crie um roteiro FACELESS COMPLETO — sem mostrar rosto — sobre: {data.tema}
+        prompt = f"""Crie um roteiro FACELESS COMPLETO � sem mostrar rosto � sobre: {data.tema}
 Plataforma: {plataforma} | Nicho: {nicho}
 
 ESTRUTURA FACELESS:
-• Narração em off: [texto completo para narrar]
-• Imagens sugeridas: [o que mostrar em cada trecho]
-• Texto na tela: [frases que aparecem sobrepostas]
-• Música: [gênero e energia]
-• Prompt de imagem IA: [prompt para gerar a thumbnail]
+� Narra��o em off: [texto completo para narrar]
+� Imagens sugeridas: [o que mostrar em cada trecho]
+� Texto na tela: [frases que aparecem sobrepostas]
+� M�sica: [g�nero e energia]
+� Prompt de imagem IA: [prompt para gerar a thumbnail]
 
-Score: X/10 | Dificuldade de produção: [fácil/médio/difícil]"""
+Score: X/10 | Dificuldade de produ��o: [f�cil/m�dio/dif�cil]"""
 
-    # ── MODO ANÚNCIO — conversão ──────────────────────────────────
+    # -- MODO AN�NCIO � convers�o ----------------------------------
     elif data.modo == "anuncio":
-        prompt = f"""Crie um roteiro de ANÚNCIO que converte sobre: {data.tema}
+        prompt = f"""Crie um roteiro de AN�NCIO que converte sobre: {data.tema}
 Plataforma: {plataforma} | Nicho: {nicho}
 
-ESTRUTURA: Hook (3s) → Problema (10s) → Solução (20s) → Prova (15s) → CTA (5s)
+ESTRUTURA: Hook (3s) ? Problema (10s) ? Solu��o (20s) ? Prova (15s) ? CTA (5s)
 
 [Roteiro completo com todas as falas]
 
-• Gatilhos de conversão usados: [lista]
-• CTA exato: [a frase exata para o call-to-action]
-• Taxa de conversão esperada: [estimativa]"""
+� Gatilhos de convers�o usados: [lista]
+� CTA exato: [a frase exata para o call-to-action]
+� Taxa de convers�o esperada: [estimativa]"""
 
     else:
-        # Fallback — modo normal
+        # Fallback � modo normal
         prompt = f"Crie um roteiro viral profissional sobre: {data.tema} para {plataforma}. Nicho: {nicho}. Entregue hook, desenvolvimento, CTA e score viral."
 
-    # Injetar fatos reais no prompt se disponível e não foi usado ainda
+    # Injetar fatos reais no prompt se dispon�vel e n�o foi usado ainda
     if fatos_reais and "fatos reais" not in prompt.lower()[:100]:
         prompt = "FATOS REAIS PESQUISADOS (use como base):\n" + fatos_reais[:800] + "\n\n---\n" + prompt
 
@@ -1648,7 +1648,7 @@ ESTRUTURA: Hook (3s) → Problema (10s) → Solução (20s) → Prova (15s) → 
 
 
 
-    # Cascata de modelos — DeepSeek > Groq > Gemini
+    # Cascata de modelos � DeepSeek > Groq > Gemini
     roteiro_texto, modelo_usado = await gerar_texto_roteiro(
         [{"role": "user", "content": prompt}],
         system=system,
@@ -1666,9 +1666,9 @@ ESTRUTURA: Hook (3s) → Problema (10s) → Solução (20s) → Prova (15s) → 
     if qualidade_rot != "top":
         aviso_rot = {
             "tipo": "qualidade_reduzida",
-            "titulo": "⚡ IAs premium no limite",
-            "mensagem": f"O modelo usado foi {modelo_usado}. Para roteiros com DeepSeek V3 ou Claude garantidos, adicione créditos.",
-            "btn_label": "💎 Recarregar para garantir IA top",
+            "titulo": "? IAs premium no limite",
+            "mensagem": f"O modelo usado foi {modelo_usado}. Para roteiros com DeepSeek V3 ou Claude garantidos, adicione cr�ditos.",
+            "btn_label": "?? Recarregar para garantir IA top",
             "btn_aba": "creditos",
         }
 
@@ -1689,70 +1689,70 @@ ESTRUTURA: Hook (3s) → Problema (10s) → Solução (20s) → Prova (15s) → 
 @app.post("/score-viral")
 async def score_viral(data: ScoreRequest, request: Request):
     usuario_id = extrair_usuario_id(request, data)
-    # Score Viral é GRÁTIS e ILIMITADO — feature de vício do Vortex
-    # Não cobra créditos, não tem limite por plano
+    # Score Viral � GR�TIS e ILIMITADO � feature de v�cio do Vortex
+    # N�o cobra cr�ditos, n�o tem limite por plano
 
-    nicho = data.nicho or _perfil.get("nicho","conteúdo digital")
-    prompt = f"""Analise este roteiro e dê um SCORE VIRAL detalhado:
+    nicho = data.nicho or _perfil.get("nicho","conte�do digital")
+    prompt = f"""Analise este roteiro e d� um SCORE VIRAL detalhado:
 
 ROTEIRO:
 {data.roteiro[:2000]}
 
 NICHO: {nicho}
 
-Avalie em 5 dimensões (0-10 cada):
-🎣 HOOK: O hook para o scroll nos primeiros 2 segundos?
-⏱️ RETENÇÃO: Cada segundo justifica o próximo?
-❤️ EMOÇÃO: Gera sentimento físico no espectador?
-🔄 COMPARTILHAMENTO: O espectador vai enviar para alguém?
-💬 COMENTÁRIO: Provoca resposta espontânea?
+Avalie em 5 dimens�es (0-10 cada):
+?? HOOK: O hook para o scroll nos primeiros 2 segundos?
+?? RETEN��O: Cada segundo justifica o pr�ximo?
+?? EMO��O: Gera sentimento f�sico no espectador?
+?? COMPARTILHAMENTO: O espectador vai enviar para algu�m?
+?? COMENT�RIO: Provoca resposta espont�nea?
 
-Para cada dimensão:
+Para cada dimens�o:
 - Nota (0-10)
-- O que está funcionando
+- O que est� funcionando
 - O que melhorar
 - Exemplo de como melhorar
 
-M�dia final e veredicto: VIRAL / POTENCIAL / RETRABALHAR"""
+M?dia final e veredicto: VIRAL / POTENCIAL / RETRABALHAR"""
 
     resultado, _ = await gerar_texto(
         [{"role":"user","content":prompt}],
-        system="Você é um analista de conteúdo viral sênior. Seja preciso e direto.",
+        system="Voc� � um analista de conte�do viral s�nior. Seja preciso e direto.",
         max_tokens=1200, provedor_preferido="groq",
     )
     debitar_creditos(usuario_id, 2, "score_viral")
     return {"ok":True,"score":resultado,"nicho":nicho,"creditos_debitados":2}
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — DNA DO CRIADOR
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � DNA DO CRIADOR
+# --------------------------------------------------------------
 
 @app.post("/dna-criador")
 async def aprender_dna(data: DNARequest, req: Request):
     usuario_id = extrair_usuario_id(req)
     saldo = verificar_saldo(usuario_id, 3)
-    if saldo < 3: raise HTTPException(402, "Créditos insuficientes. Precisa de 3.")
+    if saldo < 3: raise HTTPException(402, "Cr�ditos insuficientes. Precisa de 3.")
 
     roteiros_txt = "\n\n---\n\n".join(data.roteiros_aprovados[:5])
-    prompt = f"""Analise estes roteiros que viralizaram para este criador e identifique o DNA único dele:
+    prompt = f"""Analise estes roteiros que viralizaram para este criador e identifique o DNA �nico dele:
 
 {roteiros_txt}
 
 {f"O criador descreve seu estilo como: {data.estilo_descricao}" if data.estilo_descricao else ""}
 
 Identifique:
-1. Padrão de hook (como ele começa os vídeos)
-2. Ritmo da narrativa (rápido/lento/variado)
-3. Vocabulário e gírias recorrentes
-4. Tipo de emoção que mais usa
+1. Padr�o de hook (como ele come�a os v�deos)
+2. Ritmo da narrativa (r�pido/lento/variado)
+3. Vocabul�rio e g�rias recorrentes
+4. Tipo de emo��o que mais usa
 5. Estrutura de CTA preferida
-6. 3 características únicas do estilo dele
-7. Fórmula secreta do sucesso dele em 1 frase"""
+6. 3 caracter�sticas �nicas do estilo dele
+7. F�rmula secreta do sucesso dele em 1 frase"""
 
     analise, _ = await gerar_texto(
         [{"role":"user","content":prompt}],
-        system="Você é um analista de estilo de conteúdo. Seja específico e preciso.",
+        system="Voc� � um analista de estilo de conte�do. Seja espec�fico e preciso.",
         max_tokens=800, provedor_preferido="groq",
     )
 
@@ -1770,9 +1770,9 @@ Identifique:
     return {"ok":True,"dna":analise,"salvo":True,"creditos_debitados":3}
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — MODO AGÊNCIA (múltiplos canais)
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � MODO AG�NCIA (m�ltiplos canais)
+# --------------------------------------------------------------
 
 @app.post("/canais")
 def criar_canal(data: CanalRequest):
@@ -1786,19 +1786,19 @@ def listar_canais():
 
 @app.get("/canais/{canal_id}")
 def get_canal(canal_id: str):
-    if canal_id not in _canais: raise HTTPException(404, "Canal não encontrado")
+    if canal_id not in _canais: raise HTTPException(404, "Canal n�o encontrado")
     return {"ok":True,"canal":_canais[canal_id]}
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — CALENDÁRIO INTELIGENTE
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � CALEND�RIO INTELIGENTE
+# --------------------------------------------------------------
 
 @app.get("/calendario")
 async def calendario(req: Request):
     usuario_id = extrair_usuario_id(req)
     saldo = verificar_saldo(usuario_id, 2)
-    if saldo < 2: raise HTTPException(402, "Créditos insuficientes.")
+    if saldo < 2: raise HTTPException(402, "Cr�ditos insuficientes.")
 
     nicho = _perfil.get("nicho","lifestyle")
     plataformas = _perfil.get("plataformas",["TikTok"])
@@ -1808,19 +1808,19 @@ async def calendario(req: Request):
     tendencias_nicho = TENDENCIAS_2026.get(nicho.lower(), TENDENCIAS_2026.get("lifestyle",{}))
     trends_plat = tendencias_nicho.get(plat, [])
 
-    prompt = f"""Crie um CALENDÁRIO DE CONTEÚDO para a próxima semana:
+    prompt = f"""Crie um CALEND�RIO DE CONTE�DO para a pr�xima semana:
 
 Nicho: {nicho}
 Plataforma: {plat}
-Horários ideais: {json.dumps(horarios)}
-Tendências do nicho: {', '.join(trends_plat[:5])}
+Hor�rios ideais: {json.dumps(horarios)}
+Tend�ncias do nicho: {', '.join(trends_plat[:5])}
 
 Para cada dia da semana (seg a dom), sugira:
-- Tipo de conteúdo ideal para aquele dia
-- Tema específico baseado nas tendências
-- Horário exato para postar
-- Formato (reels 30s / vídeo longo / carrossel)
-- Hook sugerido para o vídeo"""
+- Tipo de conte�do ideal para aquele dia
+- Tema espec�fico baseado nas tend�ncias
+- Hor�rio exato para postar
+- Formato (reels 30s / v�deo longo / carrossel)
+- Hook sugerido para o v�deo"""
 
     calendario_txt, _ = await gerar_texto(
         [{"role":"user","content":prompt}],
@@ -1832,34 +1832,34 @@ Para cada dia da semana (seg a dom), sugira:
             "horarios_ideais":horarios,"creditos_debitados":2}
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — RELATÓRIO SEMANAL
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � RELAT�RIO SEMANAL
+# --------------------------------------------------------------
 
 @app.get("/relatorio-semanal")
 async def relatorio_semanal(req: Request):
     usuario_id = extrair_usuario_id(req)
     saldo = verificar_saldo(usuario_id, 3)
-    if saldo < 3: raise HTTPException(402, "Créditos insuficientes.")
+    if saldo < 3: raise HTTPException(402, "Cr�ditos insuficientes.")
 
-    nicho = _perfil.get("nicho","conteúdo digital")
+    nicho = _perfil.get("nicho","conte�do digital")
     plataformas = _perfil.get("plataformas",["TikTok"])
     hist = historico_creditos(usuario_id)
     acoes = [h.get("acao","") for h in hist[-20:]] if hist else []
 
-    prompt = f"""Crie um RELATÓRIO SEMANAL de criação de conteúdo:
+    prompt = f"""Crie um RELAT�RIO SEMANAL de cria��o de conte�do:
 
 Nicho: {nicho}
 Plataformas: {plataformas}
-Ações desta semana: {', '.join(acoes) if acoes else 'Primeira semana'}
+A��es desta semana: {', '.join(acoes) if acoes else 'Primeira semana'}
 
-O relatório deve incluir:
-1. 📊 RESUMO DA SEMANA — o que foi produzido
-2. 🔥 TENDÊNCIAS QUENTES — o que está viralizando agora no nicho
-3. 💡 3 IDEIAS PARA PRÓXIMA SEMANA — baseadas nas tendências
-4. ⚠️ O QUE EVITAR — erros comuns no nicho agora
-5. 🎯 META DA SEMANA — um objetivo específico e mensurável
-6. 🚀 DICA DE OURO — uma insight que poucos criadores sabem"""
+O relat�rio deve incluir:
+1. ?? RESUMO DA SEMANA � o que foi produzido
+2. ?? TEND�NCIAS QUENTES � o que est� viralizando agora no nicho
+3. ?? 3 IDEIAS PARA PR�XIMA SEMANA � baseadas nas tend�ncias
+4. ?? O QUE EVITAR � erros comuns no nicho agora
+5. ?? META DA SEMANA � um objetivo espec�fico e mensur�vel
+6. ?? DICA DE OURO � uma insight que poucos criadores sabem"""
 
     relatorio, _ = await gerar_texto(
         [{"role":"user","content":prompt}],
@@ -1870,9 +1870,9 @@ O relatório deve incluir:
     return {"ok":True,"relatorio":relatorio,"semana":str(date.today()),"creditos_debitados":3}
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — SUGESTÃO PROATIVA DE TRENDS
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � SUGEST�O PROATIVA DE TRENDS
+# --------------------------------------------------------------
 
 @app.get("/trends-agora")
 async def trends_agora(request: Request):
@@ -1884,14 +1884,14 @@ async def trends_agora(request: Request):
     fatos_reais = ""
     tavily_key = os.getenv("TAVILY_API_KEY", TAVILY_API_KEY)
     if tavily_key:
-        query = f"tendências virais {nicho} {plat} Brasil 2026 maio"
+        query = f"tend�ncias virais {nicho} {plat} Brasil 2026 maio"
         fatos_reais = await buscar_tavily(query, max_results=3)
         print(f"[Trends] Tavily buscou: {len(fatos_reais)} chars")
 
     tendencias_nicho = TENDENCIAS_2026.get(nicho.lower(), {})
-    trends_base = tendencias_nicho.get(plat, ["Conteúdo autêntico","Consistência","Engajamento real"])
+    trends_base = tendencias_nicho.get(plat, ["Conte�do aut�ntico","Consist�ncia","Engajamento real"])
 
-    prompt = f"""Você é o maior especialista em tendências de conteúdo viral do Brasil em 2026.
+    prompt = f"""Voc� � o maior especialista em tend�ncias de conte�do viral do Brasil em 2026.
 
 NICHO: {nicho}
 PLATAFORMA: {plat}
@@ -1901,15 +1901,15 @@ DATA: {datetime.now().strftime('%d/%m/%Y')}
 
 Com base nesses dados REAIS e atuais, entregue:
 
-🔥 TOP 5 TRENDS AGORA
+?? TOP 5 TRENDS AGORA
 Para cada trend:
-- Nome da tendência
-- Por que está viralizando AGORA (dados reais se possível)
+- Nome da tend�ncia
+- Por que est� viralizando AGORA (dados reais se poss�vel)
 - Como adaptar para {nicho} no {plat}
-- Ideia de vídeo pronto para gravar HOJE
-- Urgência: 🔴 USE AGORA / 🟡 Esta semana / 🟢 Este mês
+- Ideia de v�deo pronto para gravar HOJE
+- Urg�ncia: ?? USE AGORA / ?? Esta semana / ?? Este m�s
 
-⚡ DICA DE OURO
+? DICA DE OURO
 Uma insight que poucos criadores de {nicho} sabem sobre o algoritmo do {plat} agora."""
 
     sugestao, _ = await gerar_texto(
@@ -1921,21 +1921,21 @@ Uma insight que poucos criadores de {nicho} sabem sobre o algoritmo do {plat} ag
             "trends_raw":trends_base,"fatos_reais":bool(fatos_reais),"atualizado_em":str(datetime.now())}
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — ANÁLISE DE PERFIL
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � AN�LISE DE PERFIL
+# --------------------------------------------------------------
 
 @app.post("/analisar-perfil")
 async def analisar_perfil(data: AnalisarPerfilIn, req: Request):
     usuario_id = extrair_usuario_id(req)
     saldo = verificar_saldo(usuario_id, 2)
-    if saldo < 2: raise HTTPException(402, "Créditos insuficientes.")
+    if saldo < 2: raise HTTPException(402, "Cr�ditos insuficientes.")
     rede = data.rede.lower()
     perfil = data.perfil.strip().lstrip("@").split("/")[-1]
-    if not perfil: raise HTTPException(400, "Perfil não informado.")
+    if not perfil: raise HTTPException(400, "Perfil n�o informado.")
     handlers = {"instagram":analisar_instagram,"tiktok":analisar_tiktok,"youtube":analisar_youtube}
     handler = handlers.get(rede)
-    if not handler: raise HTTPException(400, f"Rede '{rede}' não suportada.")
+    if not handler: raise HTTPException(400, f"Rede '{rede}' n�o suportada.")
     try:
         resultado = await handler(perfil)
     except Exception as e:
@@ -1949,7 +1949,7 @@ async def analisar_perfil(data: AnalisarPerfilIn, req: Request):
             if TAVILY_API_KEY:
                 try:
                     nicho_perfil = resultado.get("nicho", "") or resultado.get("bio", "")[:50]
-                    dados_mercado = await buscar_tavily(f"estratégia crescimento {rede} {nicho_perfil} 2026 Brasil")
+                    dados_mercado = await buscar_tavily(f"estrat�gia crescimento {rede} {nicho_perfil} 2026 Brasil")
                 except:
                     pass  # silencioso intencional
 
@@ -1959,66 +1959,66 @@ async def analisar_perfil(data: AnalisarPerfilIn, req: Request):
             posts = resultado.get('posts', 0) or 0
             bio = resultado.get('bio', '') or ''
             
-            prompt_ia = f"""Você é o estrategista de {rede} mais preciso e cirúrgico do Brasil.
-Analise o perfil @{perfil} com dados reais e entregue diagnóstico de alto valor.
+            prompt_ia = f"""Voc� � o estrategista de {rede} mais preciso e cir�rgico do Brasil.
+Analise o perfil @{perfil} com dados reais e entregue diagn�stico de alto valor.
 
-═══════════════════════════════════
+-----------------------------------
 DADOS REAIS DO PERFIL @{perfil}
-═══════════════════════════════════
-• Seguidores: {seguidores:,}
-• Taxa de engajamento: {eng_raw}
-• Total de posts: {posts}
-• Bio: {bio[:150] if bio else "Não disponível"}
-• Rede: {rede.upper()}
-{f"• Contexto adicional: {contexto[:200]}" if contexto else ""}
-{f"• Benchmark do mercado: {dados_mercado[:500]}" if dados_mercado else ""}
+-----------------------------------
+� Seguidores: {seguidores:,}
+� Taxa de engajamento: {eng_raw}
+� Total de posts: {posts}
+� Bio: {bio[:150] if bio else "N�o dispon�vel"}
+� Rede: {rede.upper()}
+{f"� Contexto adicional: {contexto[:200]}" if contexto else ""}
+{f"� Benchmark do mercado: {dados_mercado[:500]}" if dados_mercado else ""}
 
-═══════════════════════════════════
+-----------------------------------
 ENTREGUE OBRIGATORIAMENTE:
-═══════════════════════════════════
+-----------------------------------
 
-🎯 SCORE DO PERFIL: X/100
-• Consistência: X/10 — [diagnóstico em 1 linha]
-• Engajamento: X/10 — [diagnóstico em 1 linha]
-• Posicionamento de nicho: X/10 — [diagnóstico em 1 linha]
-• Potencial viral: X/10 — [diagnóstico em 1 linha]
-• Bio/Primeira impressão: X/10 — [diagnóstico em 1 linha]
+?? SCORE DO PERFIL: X/100
+� Consist�ncia: X/10 � [diagn�stico em 1 linha]
+� Engajamento: X/10 � [diagn�stico em 1 linha]
+� Posicionamento de nicho: X/10 � [diagn�stico em 1 linha]
+� Potencial viral: X/10 � [diagn�stico em 1 linha]
+� Bio/Primeira impress�o: X/10 � [diagn�stico em 1 linha]
 
-📊 DIAGNÓSTICO REAL
-O que está FUNCIONANDO: [específico, não genérico]
-O que está MATANDO o crescimento: [específico, com dados]
+?? DIAGN�STICO REAL
+O que est� FUNCIONANDO: [espec�fico, n�o gen�rico]
+O que est� MATANDO o crescimento: [espec�fico, com dados]
 
-⚠️ ERRO #1 (o maior freio do perfil agora):
-[Nome do erro] — [por que isso mata o crescimento e como provar com os dados]
+?? ERRO #1 (o maior freio do perfil agora):
+[Nome do erro] � [por que isso mata o crescimento e como provar com os dados]
 
-🚀 3 AÇÕES DOS PRÓXIMOS 7 DIAS:
-1. [Ação específica e mensurável — com prazo e métrica]
-2. [Ação específica e mensurável — com prazo e métrica]  
-3. [Ação específica e mensurável — com prazo e métrica]
+?? 3 A��ES DOS PR�XIMOS 7 DIAS:
+1. [A��o espec�fica e mensur�vel � com prazo e m�trica]
+2. [A��o espec�fica e mensur�vel � com prazo e m�trica]  
+3. [A��o espec�fica e mensur�vel � com prazo e m�trica]
 
-💡 INSIGHT QUE NINGUÉM VÊ:
-[Uma oportunidade não óbvia específica para esse perfil com esses dados]
+?? INSIGHT QUE NINGU�M V�:
+[Uma oportunidade n�o �bvia espec�fica para esse perfil com esses dados]
 
-🔮 PREVISÃO:
-Se implementar as 3 ações em 30 dias: [estimativa realista de crescimento %]"""
+?? PREVIS�O:
+Se implementar as 3 a��es em 30 dias: [estimativa realista de crescimento %]"""
 
             recomendacao, _ = await gerar_texto_chat(
                 [{"role":"user","content":prompt_ia}],
-                system="Você é o estrategista de redes sociais mais preciso do Brasil. Seja específico, direto e cirúrgico.",
+                system="Voc� � o estrategista de redes sociais mais preciso do Brasil. Seja espec�fico, direto e cir�rgico.",
                 max_tokens=800,
             )
             resultado["analise_completa"] = recomendacao
         except Exception as e:
-            print(f"[Análise IA] {e}")
+            print(f"[An�lise IA] {e}")
     debitar_creditos(usuario_id, 2, "analise_perfil")
     return {"ok":True,"rede":rede,"perfil":perfil,**resultado}
 
 
 
 
-# ══════════════════════════════════════════════════════════════════
-# 🎬 ANÁLISE DE VÍDEO — Por URL ou upload
-# ══════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------
+# ?? AN�LISE DE V�DEO � Por URL ou upload
+# ------------------------------------------------------------------
 class AnalisarVideoIn(BaseModel):
     url: Optional[str] = ""
     transcricao: Optional[str] = ""
@@ -2031,13 +2031,13 @@ class AnalisarVideoIn(BaseModel):
 @app.post("/analisar-video")
 async def analisar_video(data: AnalisarVideoIn, request: Request):
     """
-    Analisa um vídeo e retorna:
-    - Por que está ou não viralizando
-    - Score de retenção estimado
+    Analisa um v�deo e retorna:
+    - Por que est� ou n�o viralizando
+    - Score de reten��o estimado
     - O que melhorar
     - Como replicar o sucesso
     """
-    # Calcular métricas
+    # Calcular m�tricas
     taxa_engajamento = 0
     if data.views and data.views > 0:
         taxa_engajamento = round(((data.likes or 0) + (data.comentarios or 0)) / data.views * 100, 2)
@@ -2046,47 +2046,47 @@ async def analisar_video(data: AnalisarVideoIn, request: Request):
     dados_nicho = ""
     if TAVILY_API_KEY and data.nicho:
         try:
-            dados_nicho = await buscar_tavily(f"vídeos virais {data.nicho} TikTok 2026 o que funciona")
+            dados_nicho = await buscar_tavily(f"v�deos virais {data.nicho} TikTok 2026 o que funciona")
         except:
             pass  # silencioso intencional
 
-    prompt = f"""Você é o melhor analista de vídeos virais do Brasil.
+    prompt = f"""Voc� � o melhor analista de v�deos virais do Brasil.
 
-DADOS DO VÍDEO:
-- Título: {data.titulo or "Não informado"}
+DADOS DO V�DEO:
+- T�tulo: {data.titulo or "N�o informado"}
 - Views: {data.views:,} 
 - Likes: {data.likes:,}
-- Comentários: {data.comentarios:,}
+- Coment�rios: {data.comentarios:,}
 - Taxa de engajamento: {taxa_engajamento}%
 - Nicho: {data.nicho}
-{f"- Transcrição/Roteiro: {data.transcricao[:500]}" if data.transcricao else ""}
+{f"- Transcri��o/Roteiro: {data.transcricao[:500]}" if data.transcricao else ""}
 {f"- Dados do mercado: {dados_nicho[:300]}" if dados_nicho else ""}
 
-Entregue uma análise CINEMATOGRÁFICA e CIRÚRGICA:
+Entregue uma an�lise CINEMATOGR�FICA e CIR�RGICA:
 
-🎯 DIAGNÓSTICO VIRAL
-Por que este vídeo está/não está viralizando (seja específico)
+?? DIAGN�STICO VIRAL
+Por que este v�deo est�/n�o est� viralizando (seja espec�fico)
 
-📊 SCORE DE RETENÇÃO: X/10
-- Hook (0-3s): X/10 — [análise]
-- Conflito (3-15s): X/10 — [análise]
-- Escalada (15-40s): X/10 — [análise]
-- Virada (40-50s): X/10 — [análise]
-- Final (50-60s): X/10 — [análise]
+?? SCORE DE RETEN��O: X/10
+- Hook (0-3s): X/10 � [an�lise]
+- Conflito (3-15s): X/10 � [an�lise]
+- Escalada (15-40s): X/10 � [an�lise]
+- Virada (40-50s): X/10 � [an�lise]
+- Final (50-60s): X/10 � [an�lise]
 
-💡 FÓRMULA DO SUCESSO
-O que exatamente está fazendo este vídeo funcionar (ou não)
+?? F�RMULA DO SUCESSO
+O que exatamente est� fazendo este v�deo funcionar (ou n�o)
 
-🚀 COMO REPLICAR
-3 ideias concretas de vídeos baseados nesta análise
+?? COMO REPLICAR
+3 ideias concretas de v�deos baseados nesta an�lise
 
-⚡ MELHORIA IMEDIATA
-Se fosse refazer este vídeo, o que mudaria nos primeiros 3 segundos"""
+? MELHORIA IMEDIATA
+Se fosse refazer este v�deo, o que mudaria nos primeiros 3 segundos"""
 
     try:
         analise, _ = await gerar_texto_chat(
             [{"role": "user", "content": prompt}],
-            system="Você é o analista de vídeos virais mais preciso do Brasil. Use dados reais e seja específico.",
+            system="Voc� � o analista de v�deos virais mais preciso do Brasil. Use dados reais e seja espec�fico.",
             max_tokens=1000,
         )
         return {
@@ -2101,24 +2101,24 @@ Se fosse refazer este vídeo, o que mudaria nos primeiros 3 segundos"""
             "analise": analise
         }
     except Exception as e:
-        raise HTTPException(500, f"Erro na análise: {str(e)[:100]}")
+        raise HTTPException(500, f"Erro na an�lise: {str(e)[:100]}")
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — GERAR IMAGEM
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � GERAR IMAGEM
+# --------------------------------------------------------------
 
-# ── Tradução PT→EN automática para APIs de IA ────────────────────────────────
+# -- Tradu��o PT?EN autom�tica para APIs de IA --------------------------------
 async def traduzir_prompt(texto: str) -> str:
     palavras_pt = ["uma","um","de","do","da","com","para","em","no","na","que","se","por","como","um","jovem","mulher","homem","cena","correndo","andando","floresta","escuro","noite"]
     palavras = texto.lower().split()
     if not any(p in palavras for p in palavras_pt):
-        return texto  # já em inglês
+        return texto  # j� em ingl�s
     try:
         instrucao = "Translate this to English for AI image/video generation. Return ONLY the translation: " + texto
         msgs = [{"role":"user","content":instrucao}]
         traduzido, _ = await gerar_texto(msgs, system="Translate to English only. No explanations.", max_tokens=150, provedor_preferido="groq")
-        print(f"[PT→EN] {texto[:40]} → {traduzido[:40]}")
+        print(f"[PT?EN] {texto[:40]} ? {traduzido[:40]}")
         return traduzido.strip()
     except:
         return texto
@@ -2126,14 +2126,14 @@ async def traduzir_prompt(texto: str) -> str:
 @app.post("/gerar-imagem")
 async def gerar_imagem(request: ImageRequest, req: Request):
     usuario_id = extrair_usuario_id(req)
-    # Créditos de imagem calculados com margem real (custo_fal × 1.4 / valor_credito_medio)
+    # Cr�ditos de imagem calculados com margem real (custo_fal � 1.4 / valor_credito_medio)
     creditos_map = {
-        # FAL — custo real com margem 40%
-        "flux-dev":              8,   # $0.025/img → 8cr
-        "flux-schnell":          3,   # $0.003/img → 3cr
-        "ideogram":              15,  # $0.08/img → 15cr
-        "stability":             12,  # $0.065/img → 12cr
-        # Grátis
+        # FAL � custo real com margem 40%
+        "flux-dev":              8,   # $0.025/img ? 8cr
+        "flux-schnell":          3,   # $0.003/img ? 3cr
+        "ideogram":              15,  # $0.08/img ? 15cr
+        "stability":             12,  # $0.065/img ? 12cr
+        # Gr�tis
         "pollinations":          0,
         "hf_flux":               0,
         "gemini":                0,
@@ -2153,9 +2153,9 @@ async def gerar_imagem(request: ImageRequest, req: Request):
     }
     creditos = creditos_map.get(request.modelo or "pollinations", 5)
     saldo = verificar_saldo(usuario_id, creditos)
-    if saldo < creditos: raise HTTPException(402, f"Créditos insuficientes. Precisa de {creditos}.")
+    if saldo < creditos: raise HTTPException(402, f"Cr�ditos insuficientes. Precisa de {creditos}.")
 
-    # Sistema inteligente — entende qualquer idioma e otimiza para a API
+    # Sistema inteligente � entende qualquer idioma e otimiza para a API
     tipo_prompt = "thumbnail" if any(w in request.prompt.lower() for w in ["thumbnail","capa","miniatura","tiktok","youtube","reel","viral","click"]) else "imagem"
     
     # Estilo do request enriquece o contexto
@@ -2179,7 +2179,7 @@ async def gerar_imagem(request: ImageRequest, req: Request):
     modelo_usado = "desconhecido"
     erros = []
 
-    # Cascata: Leonardo → WaveSpeed → erro claro
+    # Cascata: Leonardo ? WaveSpeed ? erro claro
     if "stability" in modelo_req.lower() or "sdxl" in modelo_req.lower():
         url = await gerar_imagem_stability(prompt=prompt_en, width=request.width, height=request.height)
         modelo_usado = "Stability AI Ultra"
@@ -2200,7 +2200,7 @@ async def gerar_imagem(request: ImageRequest, req: Request):
             except Exception as e:
                 erros.append(f"WaveSpeed fallback: {e}")
     else:
-        # WaveSpeed primeiro → Leonardo fallback
+        # WaveSpeed primeiro ? Leonardo fallback
         if WAVESPEED_API_KEY:
             try:
                 url = await gerar_imagem_wavespeed(prompt=prompt_en, endpoint=modelo_req)
@@ -2214,7 +2214,7 @@ async def gerar_imagem(request: ImageRequest, req: Request):
             except Exception as e:
                 erros.append(f"Leonardo fallback: {e}")
 
-    # FAL.ai — Flux Dev de alta qualidade
+    # FAL.ai � Flux Dev de alta qualidade
     if not url and FAL_API_KEY:
         try:
             url = await gerar_imagem_fal(prompt=prompt_en, modelo="fal-ai/flux/dev", width=request.width or 1024, height=request.height or 1024)
@@ -2222,7 +2222,7 @@ async def gerar_imagem(request: ImageRequest, req: Request):
         except Exception as e:
             erros.append(f"FAL: {e}")
 
-    # Fallback gratuito — Pollinations.ai (sem key, sempre disponível)
+    # Fallback gratuito � Pollinations.ai (sem key, sempre dispon�vel)
     if not url:
         try:
             import urllib.parse
@@ -2240,9 +2240,9 @@ async def gerar_imagem(request: ImageRequest, req: Request):
     return {"ok":True,"imagem":url,"modelo":modelo_usado,"prompt_en":prompt_en,"creditos_debitados":creditos}
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — GERAR VÍDEO
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � GERAR V�DEO
+# --------------------------------------------------------------
 
 @app.post("/gerar-video")
 async def gerar_video(request: VideoRequest, req: Request):
@@ -2264,9 +2264,9 @@ async def gerar_video(request: VideoRequest, req: Request):
     creditos_base = creditos_base_map.get(request.modelo or "wavespeed-ai/wan-2.2/t2v-480p", 6)
     creditos_necessarios = creditos_base * request.duracao
     saldo = verificar_saldo(usuario_id, creditos_necessarios)
-    if saldo < creditos_necessarios: raise HTTPException(402, f"Créditos insuficientes. Precisa de {creditos_necessarios}.")
+    if saldo < creditos_necessarios: raise HTTPException(402, f"Cr�ditos insuficientes. Precisa de {creditos_necessarios}.")
 
-    # Sistema inteligente — entende qualquer idioma e otimiza para a API
+    # Sistema inteligente � entende qualquer idioma e otimiza para a API
     tipo_prompt = "thumbnail" if any(w in request.prompt.lower() for w in ["thumbnail","capa","miniatura","tiktok","youtube","reel","viral","click"]) else "imagem"
     
     # Estilo do request enriquece o contexto
@@ -2285,7 +2285,7 @@ async def gerar_video(request: VideoRequest, req: Request):
     prompt_base = estilo_ctx + request.prompt if estilo_ctx else request.prompt
     prompt_en = prompt_base + ", highly detailed, 8k uhd, cinematic lighting, award winning"
 
-    # Verificar se é Kling
+    # Verificar se � Kling
     if request.modelo and "kling" in request.modelo.lower():
         url = await gerar_video_kling(prompt=prompt_en, duracao=request.duracao, ratio=request.ratio)
         modelo_usado = "Kling AI"
@@ -2301,7 +2301,7 @@ async def gerar_video(request: VideoRequest, req: Request):
         modelo_usado = "Google Veo 2"
     elif request.modelo and "runway" in request.modelo.lower():
         if not RUNWAY_API_KEY:
-            raise HTTPException(500, "RUNWAY_API_KEY não configurada. Adicione sua key do Runway.")
+            raise HTTPException(500, "RUNWAY_API_KEY n�o configurada. Adicione sua key do Runway.")
         runway_modelo = "gen3a_turbo" if "turbo" in request.modelo.lower() else "gen3a"
         url = await gerar_video_runway(prompt=prompt_en, duracao=request.duracao, resolucao=request.resolucao, ratio=request.ratio)
         modelo_usado = "Runway Gen-3 " + ("Turbo" if "turbo" in request.modelo.lower() else "Alpha")
@@ -2318,7 +2318,7 @@ async def gerar_video(request: VideoRequest, req: Request):
                 except Exception as ek:
                     erros_vid.append(str(ek)[:50])
             if not url:
-                raise HTTPException(502, f"Vídeo indisponível: {'; '.join(erros_vid)}")
+                raise HTTPException(502, f"V�deo indispon�vel: {'; '.join(erros_vid)}")
     elif WAVESPEED_API_KEY:
         modelo_ws = request.modelo if request.modelo and "wavespeed" in request.modelo else "wavespeed-ai/wan-2.2/t2v-480p"
         try:
@@ -2332,32 +2332,32 @@ async def gerar_video(request: VideoRequest, req: Request):
                 url = await gerar_video_luma(prompt=prompt_en, duracao=request.duracao, modelo="dream-machine")
                 modelo_usado = "Luma (fallback)"
             else:
-                raise HTTPException(502, f"Vídeo indisponível: {str(e_ws)[:100]}")
+                raise HTTPException(502, f"V�deo indispon�vel: {str(e_ws)[:100]}")
     elif RUNWAY_API_KEY:
         url = await gerar_video_runway(prompt=prompt_en, duracao=request.duracao, resolucao=request.resolucao, ratio=request.ratio)
         modelo_usado = "Runway Gen-3"
     else:
-        raise HTTPException(500, "Nenhuma API de vídeo configurada.")
+        raise HTTPException(500, "Nenhuma API de v�deo configurada.")
 
     debitar_creditos(usuario_id, creditos_necessarios, "gerar_video")
     return {"ok":True,"video_url":url,"modelo":modelo_usado,"duracao":request.duracao,"prompt_en":prompt_en,"creditos_debitados":creditos_necessarios}
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — GERAR VOZ
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � GERAR VOZ
+# --------------------------------------------------------------
 
 @app.post("/clonar-voz")
 async def clonar_voz(audio: UploadFile = File(...), nome: str = "Minha Voz", request: Request = None):
-    """Clona a voz do usuário via ElevenLabs Instant Voice Cloning."""
+    """Clona a voz do usu�rio via ElevenLabs Instant Voice Cloning."""
     usuario_id = extrair_usuario_id(request) if request else "anon_voice"
     saldo = verificar_saldo(usuario_id, 10)
-    if saldo < 10: raise HTTPException(402, "Créditos insuficientes. Precisa de 10.")
+    if saldo < 10: raise HTTPException(402, "Cr�ditos insuficientes. Precisa de 10.")
 
     el_key = os.getenv("ELEVENLABS_API_KEY", "")
-    if not el_key: raise HTTPException(500, "ELEVENLABS_API_KEY não configurada")
+    if not el_key: raise HTTPException(500, "ELEVENLABS_API_KEY n�o configurada")
 
-    # Salva o áudio temporariamente
+    # Salva o �udio temporariamente
     import shutil, uuid
     audio_path = os.path.join(UPLOAD_DIR, f"voice_{uuid.uuid4().hex}.mp3")
     with open(audio_path, "wb") as f:
@@ -2376,7 +2376,7 @@ async def clonar_voz(audio: UploadFile = File(...), nome: str = "Minha Voz", req
                 raise HTTPException(502, f"ElevenLabs erro {r.status_code}: {r.text[:200]}")
             d = r.json()
             voice_id = d.get("voice_id")
-            if not voice_id: raise HTTPException(502, "ElevenLabs não retornou voice_id")
+            if not voice_id: raise HTTPException(502, "ElevenLabs n�o retornou voice_id")
 
         debitar_creditos(usuario_id, 10, "clonar_voz")
         return {"ok": True, "voice_id": voice_id, "nome": nome}
@@ -2397,7 +2397,7 @@ async def gerar_musica(request: MusicaRequest, req: Request):
     creditos = 3
     saldo = verificar_saldo(usuario_id, creditos)
     if saldo < creditos:
-        raise HTTPException(402, f"Créditos insuficientes. Precisa de {creditos}.")
+        raise HTTPException(402, f"Cr�ditos insuficientes. Precisa de {creditos}.")
 
     prompt_completo = request.estilo + " music, " + request.prompt + ", high quality audio"
     provedor_musica = request.estilo if request.estilo in ["suno","udio"] else "elevenlabs"
@@ -2432,17 +2432,17 @@ async def gerar_voz(request: VoiceRequest, req: Request):
     chars = len(request.texto)
     creditos_necessarios = max(1, (chars // 1000) * 3)
     saldo = verificar_saldo(usuario_id, creditos_necessarios)
-    if saldo < creditos_necessarios: raise HTTPException(402, f"Créditos insuficientes. Precisa de {creditos_necessarios}.")
+    if saldo < creditos_necessarios: raise HTTPException(402, f"Cr�ditos insuficientes. Precisa de {creditos_necessarios}.")
     audio_url = await gerar_voz_elevenlabs(texto=request.texto, voz_id=request.voz_id, modelo=request.modelo)
     debitar_creditos(usuario_id, creditos_necessarios, "gerar_voz")
     return {"ok":True,"audio_url":audio_url,"modelo":"ElevenLabs","chars":chars,"creditos_debitados":creditos_necessarios}
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — TENDÊNCIAS
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � TEND�NCIAS
+# --------------------------------------------------------------
 
-# Cache trends — 6 horas
+# Cache trends � 6 horas
 import time as _time
 _trends_cache: dict = {}
 _trends_cache_ts: dict = {}
@@ -2450,24 +2450,24 @@ _trends_cache_ts: dict = {}
 @app.get("/tendencias")
 async def tendencias(request: Request, nicho: str = "", plataforma: str = "", pais: str = "BR", idioma: str = "pt"):
     """
-    Sistema global de tendências — busca tendências reais em tempo real.
-    Detecta o país e idioma automaticamente para resultados localizados.
+    Sistema global de tend�ncias � busca tend�ncias reais em tempo real.
+    Detecta o pa�s e idioma automaticamente para resultados localizados.
     """
     usuario_id = extrair_usuario_id(request)
-    nicho_final = nicho or _perfil.get("nicho", "conteúdo viral")
+    nicho_final = nicho or _perfil.get("nicho", "conte�do viral")
     plats = _perfil.get("plataformas", [])
     plataforma_final = plataforma or (plats[0] if plats else "TikTok")
     pais_final = pais or "BR"
     
-    # Mapa de países para contexto de busca
+    # Mapa de pa�ses para contexto de busca
     PAISES_CONTEXTO = {
-        "BR": {"nome": "Brasil", "idioma": "português", "moeda": "BRL"},
+        "BR": {"nome": "Brasil", "idioma": "portugu�s", "moeda": "BRL"},
         "US": {"nome": "United States", "idioma": "english", "moeda": "USD"},
-        "MX": {"nome": "México", "idioma": "español", "moeda": "MXN"},
-        "AR": {"nome": "Argentina", "idioma": "español", "moeda": "ARS"},
-        "PT": {"nome": "Portugal", "idioma": "português", "moeda": "EUR"},
-        "ES": {"nome": "España", "idioma": "español", "moeda": "EUR"},
-        "FR": {"nome": "France", "idioma": "français", "moeda": "EUR"},
+        "MX": {"nome": "M�xico", "idioma": "espa�ol", "moeda": "MXN"},
+        "AR": {"nome": "Argentina", "idioma": "espa�ol", "moeda": "ARS"},
+        "PT": {"nome": "Portugal", "idioma": "portugu�s", "moeda": "EUR"},
+        "ES": {"nome": "Espa�a", "idioma": "espa�ol", "moeda": "EUR"},
+        "FR": {"nome": "France", "idioma": "fran�ais", "moeda": "EUR"},
         "DE": {"nome": "Deutschland", "idioma": "deutsch", "moeda": "EUR"},
     }
     ctx_pais = PAISES_CONTEXTO.get(pais_final, PAISES_CONTEXTO["BR"])
@@ -2475,67 +2475,67 @@ async def tendencias(request: Request, nicho: str = "", plataforma: str = "", pa
     cache_key = f"{nicho_final}_{plataforma_final}_{pais_final}"
     now = _time.time()
 
-    # Cache válido por 3 horas
+    # Cache v�lido por 3 horas
     if cache_key in _trends_cache and (now - _trends_cache_ts.get(cache_key, 0)) < 10800:
         print(f"[TRENDS] Cache hit: {cache_key}")
         return _trends_cache[cache_key]
 
-    # Buscar tendências reais com Tavily
+    # Buscar tend�ncias reais com Tavily
     trends_reais = []
-    # Sistema completo de tendências — Google Trends + Tavily
+    # Sistema completo de tend�ncias � Google Trends + Tavily
     try:
         trends_data = await buscar_trends_completo(nicho_final, plataforma_final, pais_final)
         
-        # Google Trends como fonte primária
+        # Google Trends como fonte prim�ria
         if trends_data["google_trends"]:
             trends_reais = [
                 {
                     "titulo": t,
-                    "descricao": f"Viral agora no Google Brasil — use isso como hook!",
-                    "como_usar": f"Crie conteúdo de {nicho_final} conectando com '{t}'",
+                    "descricao": f"Viral agora no Google Brasil � use isso como hook!",
+                    "como_usar": f"Crie conte�do de {nicho_final} conectando com '{t}'",
                     "potencial": "alto",
                     "hashtags": [f"#{t.replace(' ', '')}", f"#{nicho_final}"],
                     "fonte": "Google Trends"
                 }
                 for t in trends_data["google_trends"][:5]
             ]
-            print(f"[TRENDS] ✅ Google Trends: {len(trends_reais)} trends")
+            print(f"[TRENDS] ? Google Trends: {len(trends_reais)} trends")
     except Exception as e_gt:
         print(f"[TRENDS] Google Trends falhou: {e_gt}")
 
     if TAVILY_API_KEY and not trends_reais:
         try:
-            query = f"tendências virais {nicho_final} {plataforma_final} {ctx_pais['nome']} 2026"
+            query = f"tend�ncias virais {nicho_final} {plataforma_final} {ctx_pais['nome']} 2026"
             resultado_tavily = await buscar_tavily(query, max_results=5)
             
             if resultado_tavily:
                 # Processar com IA para extrair trends estruturadas
-                prompt_trends = f"""Você é um analista de tendências virais do Brasil.
+                prompt_trends = f"""Voc� � um analista de tend�ncias virais do Brasil.
 
-Com base nos dados abaixo, extraia 5 tendências REAIS e ESPECÍFICAS de {nicho_final} no {ctx_pais['nome']}.
+Com base nos dados abaixo, extraia 5 tend�ncias REAIS e ESPEC�FICAS de {nicho_final} no {ctx_pais['nome']}.
 
 DADOS:
 {resultado_tavily[:1500]}
 
-REGRAS OBRIGATÓRIAS:
-- Use APENAS informações dos dados acima — não invente
-- Cada tendência deve ter um nome ESPECÍFICO (ex: "BBB 2026", "Free Fire novo personagem") não genérico ("Conteúdo viral")
-- Se não houver dados suficientes, reduza para 3 tendências reais em vez de inventar 5
+REGRAS OBRIGAT�RIAS:
+- Use APENAS informa��es dos dados acima � n�o invente
+- Cada tend�ncia deve ter um nome ESPEC�FICO (ex: "BBB 2026", "Free Fire novo personagem") n�o gen�rico ("Conte�do viral")
+- Se n�o houver dados suficientes, reduza para 3 tend�ncias reais em vez de inventar 5
 
 Responda APENAS com JSON:
 [
   {{
-    "titulo": "Nome específico e real da tendência",
-    "descricao": "Por que está viralizando agora — baseado nos dados",
+    "titulo": "Nome espec�fico e real da tend�ncia",
+    "descricao": "Por que est� viralizando agora � baseado nos dados",
     "como_usar": "Como creator de {nicho_final} pode usar",
-    "potencial": "alto/médio/baixo",
+    "potencial": "alto/m�dio/baixo",
     "hashtags": ["#tag1", "#tag2", "#tag3"]
   }}
 ]"""
 
                 msgs = [{"role": "user", "content": prompt_trends}]
                 resultado_ia, _ = await gerar_texto(msgs, 
-                    system="Você extrai tendências virais em JSON estruturado. Responda APENAS com JSON válido.",
+                    system="Voc� extrai tend�ncias virais em JSON estruturado. Responda APENAS com JSON v�lido.",
                     max_tokens=1000, provedor_preferido="groq")
                 
                 import json as _json
@@ -2547,11 +2547,11 @@ Responda APENAS com JSON:
         except Exception as e:
             print(f"[TRENDS] Tavily falhou: {e}")
 
-    # Fallback para trends estáticas se tudo falhar
+    # Fallback para trends est�ticas se tudo falhar
     if not trends_reais:
         nicho_data = TENDENCIAS_2026.get(nicho_final.lower(), TENDENCIAS_2026.get("lifestyle", {}))
-        trends_estaticas = nicho_data.get(plataforma_final, ["Conteúdo autêntico", "POV viral", "Storytelling"])
-        trends_reais = [{"titulo": t, "descricao": "Tendência em alta", "potencial": "alto", "hashtags": []} for t in trends_estaticas[:5]]
+        trends_estaticas = nicho_data.get(plataforma_final, ["Conte�do aut�ntico", "POV viral", "Storytelling"])
+        trends_reais = [{"titulo": t, "descricao": "Tend�ncia em alta", "potencial": "alto", "hashtags": []} for t in trends_estaticas[:5]]
 
     resp = {
         "ok": True,
@@ -2569,9 +2569,9 @@ Responda APENAS com JSON:
     return resp
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — CRÉDITOS
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � CR�DITOS
+# --------------------------------------------------------------
 
 class AvatarRequest(BaseModel):
     imagem_url: str
@@ -2584,7 +2584,7 @@ async def gerar_avatar(request: AvatarRequest, req: Request):
     creditos = 20
     saldo = verificar_saldo(usuario_id, creditos)
     if saldo < creditos:
-        raise HTTPException(402, f"Créditos insuficientes. Precisa de {creditos}.")
+        raise HTTPException(402, f"Cr�ditos insuficientes. Precisa de {creditos}.")
     url = await gerar_avatar_hedra(imagem_url=request.imagem_url, audio_url=request.audio_url)
     debitar_creditos(usuario_id, creditos, "gerar_avatar")
     return {"ok": True, "video_url": url, "creditos_debitados": creditos}
@@ -2601,9 +2601,9 @@ def creditos_hist(request: Request):
     return {"ok":True,"historico":historico_creditos(uid)}
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — PAGAMENTO (Mercado Pago)
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � PAGAMENTO (Mercado Pago)
+# --------------------------------------------------------------
 
 PLANOS_CONFIG = {
     "starter_mensal":  {"creditos": 250,  "preco": 9.00,  "nome": "Starter Mensal"},
@@ -2629,11 +2629,11 @@ class PagamentoRequest(BaseModel):
 async def criar_pagamento(request: PagamentoRequest):
     mp_token = os.getenv("MP_ACCESS_TOKEN", "")
     if not mp_token:
-        raise HTTPException(500, "MP_ACCESS_TOKEN não configurado")
+        raise HTTPException(500, "MP_ACCESS_TOKEN n�o configurado")
 
     plano = PLANOS_CONFIG.get(request.plano_id)
     if not plano:
-        raise HTTPException(400, f"Plano inválido: {request.plano_id}")
+        raise HTTPException(400, f"Plano inv�lido: {request.plano_id}")
 
     vortex_url = os.getenv("VORTEX_URL", "http://127.0.0.1:8082")
 
@@ -2643,7 +2643,7 @@ async def criar_pagamento(request: PagamentoRequest):
             headers={"Authorization": f"Bearer {mp_token}", "Content-Type": "application/json"},
             json={
                 "items": [{
-                    "title": f"Vortex AI — {plano['nome']}",
+                    "title": f"Vortex AI � {plano['nome']}",
                     "quantity": 1,
                     "unit_price": plano["preco"],
                     "currency_id": "BRL",
@@ -2673,7 +2673,7 @@ async def pagamento_sucesso(request: Request, plano: str, usuario: str = "", pay
     from fastapi.responses import RedirectResponse
     plano_cfg = PLANOS_CONFIG.get(plano)
     if plano_cfg:
-        # Adiciona créditos ao usuário
+        # Adiciona cr�ditos ao usu�rio
         creditos_atuais = get_creditos_db(usuario)
         novos_creditos = creditos_atuais + plano_cfg["creditos"]
         set_creditos_db(usuario, novos_creditos)
@@ -2682,7 +2682,7 @@ async def pagamento_sucesso(request: Request, plano: str, usuario: str = "", pay
             "plano": plano, "creditos": plano_cfg["creditos"],
             "preco": plano_cfg["preco"], "payment_id": payment_id
         })
-        print(f"[Pagamento] ✅ {usuario} comprou {plano} — +{plano_cfg['creditos']} créditos")
+        print(f"[Pagamento] ? {usuario} comprou {plano} � +{plano_cfg['creditos']} cr�ditos")
 
     frontend = os.getenv("FRONTEND_URL", "http://localhost:5173")
     return RedirectResponse(f"{frontend}?pagamento=ok&plano={plano}")
@@ -2690,8 +2690,8 @@ async def pagamento_sucesso(request: Request, plano: str, usuario: str = "", pay
 
 @app.post("/webhook/mercadopago")
 async def webhook_mp(request: Request):
-    """Webhook do Mercado Pago com validação de assinatura"""
-    # Validar assinatura MP — evita webhooks falsos
+    """Webhook do Mercado Pago com valida��o de assinatura"""
+    # Validar assinatura MP � evita webhooks falsos
     mp_secret = os.getenv("MP_WEBHOOK_SECRET", "")
     raw_body = await request.body()
     if mp_secret:
@@ -2707,12 +2707,12 @@ async def webhook_mp(request: Request):
                     mp_secret.encode(), manifest.encode(), hashlib.sha256
                 ).hexdigest()
                 if not hmac.compare_digest(expected, v1):
-                    print("[MP Webhook] ⚠️ Assinatura inválida!")
-                    raise HTTPException(401, "Assinatura inválida")
+                    print("[MP Webhook] ?? Assinatura inv�lida!")
+                    raise HTTPException(401, "Assinatura inv�lida")
         except HTTPException:
             raise
         except Exception as e:
-            print(f"[MP Webhook] Erro validação: {e}")
+            print(f"[MP Webhook] Erro valida��o: {e}")
 
     try:
         data = json.loads(raw_body)
@@ -2738,29 +2738,29 @@ async def webhook_mp(request: Request):
                             usuario_id, plano_id = parts
                             plano_cfg = PLANOS_CONFIG.get(plano_id)
                             if plano_cfg:
-                                # IDEMPOTÊNCIA — evita processar o mesmo pagamento 2x
+                                # IDEMPOT�NCIA � evita processar o mesmo pagamento 2x
                                 user_data = get_usuario_db(usuario_id)
                                 pagamentos_processados = user_data.get("pagamentos_processados", [])
 
                                 if payment_id in pagamentos_processados:
-                                    print(f"[MP Webhook] ⚠️ Pagamento {payment_id} já processado — ignorando")
+                                    print(f"[MP Webhook] ?? Pagamento {payment_id} j� processado � ignorando")
                                 else:
-                                    # Adicionar créditos
+                                    # Adicionar cr�ditos
                                     creditos_atuais = get_creditos_db(usuario_id)
                                     set_creditos_db(usuario_id, creditos_atuais + plano_cfg["creditos"])
 
                                     # Registrar pagamento como processado
                                     pagamentos_processados.append(payment_id)
-                                    # Manter só os últimos 50 pagamentos
+                                    # Manter s� os �ltimos 50 pagamentos
                                     user_data["pagamentos_processados"] = pagamentos_processados[-50:]
                                     salvar_usuario_db(usuario_id, user_data)
 
-                                    print(f"[MP Webhook] ✅ Créditos adicionados: {usuario_id} +{plano_cfg['creditos']} (payment={payment_id})")
+                                    print(f"[MP Webhook] ? Cr�ditos adicionados: {usuario_id} +{plano_cfg['creditos']} (payment={payment_id})")
     return {"ok": True}
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — UPLOAD DE VÍDEO
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � UPLOAD DE V�DEO
+# --------------------------------------------------------------
 
 @app.post("/upload-video")
 async def upload_video(video: UploadFile = File(...), request: Request = None):
@@ -2772,18 +2772,18 @@ async def upload_video(video: UploadFile = File(...), request: Request = None):
     with open(filepath, "wb") as f:
         shutil.copyfileobj(video.file, f)
     
-    # Tamanho e duração estimada
+    # Tamanho e dura��o estimada
     size_mb = os.path.getsize(filepath) / (1024*1024)
     duracao_estimada = max(5, min(120, size_mb * 8))  # estimativa: ~8s por MB
     
-    # URL pública acessível pelo Shotstack
-    # Em produção: use Cloudflare R2, S3 ou outro CDN
+    # URL p�blica acess�vel pelo Shotstack
+    # Em produ��o: use Cloudflare R2, S3 ou outro CDN
     # Por agora: URL local via staticfiles (funciona se Shotstack acessar localhost)
-    # Para produção real: fazer ngrok ou deploy em servidor público
+    # Para produ��o real: fazer ngrok ou deploy em servidor p�blico
     host = os.getenv("VORTEX_URL", "http://localhost:8082")
     url_publica = f"{host}/uploads/{filename}"
     
-    print(f"[UPLOAD] {filename} salvo ({size_mb:.1f}MB) → {url_publica}")
+    print(f"[UPLOAD] {filename} salvo ({size_mb:.1f}MB) ? {url_publica}")
     return {
         "ok": True,
         "url": url_publica,
@@ -2793,15 +2793,15 @@ async def upload_video(video: UploadFile = File(...), request: Request = None):
     }
 
 
-# ══════════════════════════════════════════════════════════════
-# ROTA — EDIÇÃO DE VÍDEO (Shotstack)
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# ROTA � EDI��O DE V�DEO (Shotstack)
+# --------------------------------------------------------------
 
 @app.post("/editar-video")
 async def editar_video(request: EditarVideoRequest, req: Request):
     usuario_id = extrair_usuario_id(req)
     saldo = verificar_saldo(usuario_id, 10)
-    if saldo < 10: raise HTTPException(402, "Créditos insuficientes. Precisa de 10.")
+    if saldo < 10: raise HTTPException(402, "Cr�ditos insuficientes. Precisa de 10.")
     
     ss_sandbox = os.getenv("SHOTSTACK_SANDBOX_KEY", "")
     ss_prod    = os.getenv("SHOTSTACK_PROD_KEY", "")
@@ -2809,7 +2809,7 @@ async def editar_video(request: EditarVideoRequest, req: Request):
     ss_env     = "stage" if ss_sandbox else "v1"
     
     if not ss_key:
-        raise HTTPException(500, "Shotstack não configurado. Adicione SHOTSTACK_SANDBOX_KEY no .bat")
+        raise HTTPException(500, "Shotstack n�o configurado. Adicione SHOTSTACK_SANDBOX_KEY no .bat")
 
     import json as _json
 
@@ -2817,7 +2817,7 @@ async def editar_video(request: EditarVideoRequest, req: Request):
     # O frontend manda o objeto interno do timeline
     raw = request.timeline
     
-    # Se já tem "timeline" e "output" como keys, usa direto
+    # Se j� tem "timeline" e "output" como keys, usa direto
     if "timeline" in raw and "output" in raw:
         payload = raw
     # Se tem "tracks" diretamente, envolve no formato correto
@@ -2867,18 +2867,18 @@ async def editar_video(request: EditarVideoRequest, req: Request):
             if status == "failed":
                 raise HTTPException(502, f"Shotstack falhou: {d.get('error','desconhecido')}")
 
-    raise HTTPException(504, "Timeout na renderização Shotstack (4 min)")
+    raise HTTPException(504, "Timeout na renderiza��o Shotstack (4 min)")
 
 
 @app.post("/transcrever")
 async def transcrever(request: Request):
-    # Endpoint placeholder — transcrição futura via Whisper
+    # Endpoint placeholder � transcri��o futura via Whisper
     return {"ok": True, "words": [], "texto": ""}
 
 
 @app.post("/pagamento/criar")
 async def criar_pagamento(request: PagamentoRequest):
-    if not MP_ACCESS_TOKEN: raise HTTPException(500, "MP_ACCESS_TOKEN não configurado.")
+    if not MP_ACCESS_TOKEN: raise HTTPException(500, "MP_ACCESS_TOKEN n�o configurado.")
     try:
         import mercadopago
         mp = mercadopago.SDK(MP_ACCESS_TOKEN)
@@ -2897,17 +2897,17 @@ async def criar_pagamento(request: PagamentoRequest):
     return {"checkout_url":checkout_url,"preference_id":preference["id"]}
 
 
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
 # MAIN
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
 
-# ── Tavily Web Search — busca fatos reais para roteiros ──────────────────────
+# -- Tavily Web Search � busca fatos reais para roteiros ----------------------
 async def buscar_google_trends(nicho: str = "", pais: str = "BR") -> list:
     """
-    Busca tendências reais — múltiplas fontes com fallback.
-    1. Google Trends RSS (grátis)
+    Busca tend�ncias reais � m�ltiplas fontes com fallback.
+    1. Google Trends RSS (gr�tis)
     2. Google Trends API alternativa
-    3. Tavily com query específica
+    3. Tavily com query espec�fica
     """
     import re as _re
 
@@ -2928,7 +2928,7 @@ async def buscar_google_trends(nicho: str = "", pais: str = "BR") -> list:
                 items = _re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', r.text)
                 items = [i.strip() for i in items if i and "Google" not in i and len(i) > 2][:10]
                 if items:
-                    print(f"[TRENDS] ✅ Google RSS: {len(items)} trends")
+                    print(f"[TRENDS] ? Google RSS: {len(items)} trends")
                     return items
     except Exception as e:
         print(f"[TRENDS] RSS falhou: {e}")
@@ -2942,7 +2942,7 @@ async def buscar_google_trends(nicho: str = "", pais: str = "BR") -> list:
                 headers={"User-Agent": "Mozilla/5.0"},
             )
             if r.is_success:
-                # Remove o prefix de segurança do Google
+                # Remove o prefix de seguran�a do Google
                 text = r.text
                 if text.startswith(")]}',"):
                     text = text[5:]
@@ -2955,36 +2955,36 @@ async def buscar_google_trends(nicho: str = "", pais: str = "BR") -> list:
                         if title:
                             items.append(title)
                 if items:
-                    print(f"[TRENDS] ✅ Google API: {len(items)} trends")
+                    print(f"[TRENDS] ? Google API: {len(items)} trends")
                     return items
     except Exception as e:
         print(f"[TRENDS] API falhou: {e}")
 
-    # FONTE 3: Tavily com query específica para trends reais
+    # FONTE 3: Tavily com query espec�fica para trends reais
     if TAVILY_API_KEY:
         try:
             from datetime import datetime
             hoje = datetime.now().strftime("%d/%m/%Y")
-            query = f"o que está viral no Brasil hoje {hoje} TikTok trending"
+            query = f"o que est� viral no Brasil hoje {hoje} TikTok trending"
             resultado = await buscar_tavily(query, max_results=5)
             if resultado:
-                # Extrair nomes específicos do resultado
+                # Extrair nomes espec�ficos do resultado
                 nomes = _re.findall(r'"([^"]{5,50})"', resultado)
                 nomes = [n for n in nomes if not any(w in n.lower() for w in ["http","www","com","br","the","and"])][:8]
                 if nomes:
-                    print(f"[TRENDS] ✅ Tavily: {len(nomes)} trends")
+                    print(f"[TRENDS] ? Tavily: {len(nomes)} trends")
                     return nomes
         except Exception as e:
             print(f"[TRENDS] Tavily falhou: {e}")
 
-    print("[TRENDS] ⚠️ Todas as fontes falharam")
+    print("[TRENDS] ?? Todas as fontes falharam")
     return []
 
 
 async def buscar_trends_completo(nicho: str, plataforma: str, pais: str = "BR") -> dict:
     """
-    Sistema completo de tendências — combina Google Trends + Tavily + base interna.
-    Retorna o contexto mais rico possível para o roteiro.
+    Sistema completo de tend�ncias � combina Google Trends + Tavily + base interna.
+    Retorna o contexto mais rico poss�vel para o roteiro.
     """
     resultado = {
         "google_trends": [],
@@ -2993,14 +2993,14 @@ async def buscar_trends_completo(nicho: str, plataforma: str, pais: str = "BR") 
         "contexto_completo": "",
     }
     
-    # 1. Google Trends — o que está viral agora no Brasil
+    # 1. Google Trends � o que est� viral agora no Brasil
     google = await buscar_google_trends(nicho, pais)
     resultado["google_trends"] = google[:5]
     
-    # 2. Tavily — análise profunda com contexto
+    # 2. Tavily � an�lise profunda com contexto
     if TAVILY_API_KEY:
         try:
-            query = f"tendências virais {nicho} {plataforma} Brasil 2026 agora"
+            query = f"tend�ncias virais {nicho} {plataforma} Brasil 2026 agora"
             tavily = await buscar_tavily(query, max_results=5)
             resultado["tavily_trends"] = [tavily] if tavily else []
         except Exception as e:
@@ -3011,21 +3011,21 @@ async def buscar_trends_completo(nicho: str, plataforma: str, pais: str = "BR") 
     
     if google:
         header = "VIRAL NO BRASIL AGORA (Google Trends):"
-        items = "\n".join(f"• {t}" for t in google[:5])
+        items = "\n".join(f"� {t}" for t in google[:5])
         partes.append(f"{header}\n{items}")
     
     if resultado["tavily_trends"]:
         analise = resultado["tavily_trends"][0][:500]
-        partes.append(f"ANÁLISE DE TENDÊNCIAS {plataforma.upper()}:\n{analise}")
+        partes.append(f"AN�LISE DE TEND�NCIAS {plataforma.upper()}:\n{analise}")
     
     resultado["contexto_completo"] = "\n\n".join(partes)
     
-    print(f"[TRENDS-COMPLETO] ✅ {len(google)} Google + Tavily combinados")
+    print(f"[TRENDS-COMPLETO] ? {len(google)} Google + Tavily combinados")
     return resultado
 
 
 async def buscar_tavily(query: str, max_results: int = 3) -> str:
-    """Busca informações reais na web via Tavily AI."""
+    """Busca informa��es reais na web via Tavily AI."""
     key = os.getenv("TAVILY_API_KEY", TAVILY_API_KEY)
     if not key:
         return ""
@@ -3057,20 +3057,20 @@ async def buscar_tavily(query: str, max_results: int = 3) -> str:
                 if res.get("content"):
                     partes.append(f"[{res.get('title','')}]: {res['content'][:400]}")
             resultado = "\n\n".join(partes)
-            print(f"[Tavily] ✅ {len(resultado)} chars sobre '{query}'")
+            print(f"[Tavily] ? {len(resultado)} chars sobre '{query}'")
             return resultado
     except Exception as e:
         print(f"[Tavily] falhou: {e}")
         return ""
 
 
-# ── WaveSpeed direto (alternativa ao Leonardo/Runway) ────────────────────────
+# -- WaveSpeed direto (alternativa ao Leonardo/Runway) ------------------------
 async def gerar_imagem_gemini(prompt: str, width: int = 1024, height: int = 1024) -> str:
-    """Gera imagem via Gemini 2.0 Flash — gratuito."""
+    """Gera imagem via Gemini 2.0 Flash � gratuito."""
     import base64
     key = GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")
     if not key:
-        raise HTTPException(500, "GEMINI_API_KEY não configurada")
+        raise HTTPException(500, "GEMINI_API_KEY n�o configurada")
     
     async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
         r = await client.post(
@@ -3094,11 +3094,11 @@ async def gerar_imagem_gemini(prompt: str, width: int = 1024, height: int = 1024
 
 
 async def gerar_imagem_hf(prompt: str) -> str:
-    """Gera imagem via Hugging Face — FLUX.1-schnell gratuito."""
+    """Gera imagem via Hugging Face � FLUX.1-schnell gratuito."""
     import base64
     key = os.getenv("HF_API_KEY", "")
     if not key:
-        raise HTTPException(500, "HF_API_KEY não configurada")
+        raise HTTPException(500, "HF_API_KEY n�o configurada")
     
     MODELOS_IMG = [
         "black-forest-labs/FLUX.1-schnell",
@@ -3116,20 +3116,20 @@ async def gerar_imagem_hf(prompt: str) -> str:
                 )
                 if r.is_success and r.headers.get("content-type","").startswith("image"):
                     img_b64 = base64.b64encode(r.content).decode()
-                    print(f"[HF IMG] ✅ {modelo}")
+                    print(f"[HF IMG] ? {modelo}")
                     return f"data:image/jpeg;base64,{img_b64}"
                 print(f"[HF IMG] {modelo}: {r.status_code} {r.text[:80]}")
             except Exception as e:
                 print(f"[HF IMG] {modelo} erro: {e}")
-    raise HTTPException(502, "HuggingFace imagem indisponível")
+    raise HTTPException(502, "HuggingFace imagem indispon�vel")
 
 
 async def gerar_video_hf(prompt: str) -> str:
-    """Gera vídeo via Hugging Face — LTX-Video gratuito."""
+    """Gera v�deo via Hugging Face � LTX-Video gratuito."""
     import base64
     key = os.getenv("HF_API_KEY", "")
     if not key:
-        raise HTTPException(500, "HF_API_KEY não configurada")
+        raise HTTPException(500, "HF_API_KEY n�o configurada")
     
     MODELOS_VID = [
         "Lightricks/LTX-Video",
@@ -3147,19 +3147,19 @@ async def gerar_video_hf(prompt: str) -> str:
                 )
                 if r.is_success and r.headers.get("content-type","").startswith("video"):
                     vid_b64 = base64.b64encode(r.content).decode()
-                    print(f"[HF VID] ✅ {modelo}")
+                    print(f"[HF VID] ? {modelo}")
                     return f"data:video/mp4;base64,{vid_b64}"
                 print(f"[HF VID] {modelo}: {r.status_code} {r.text[:80]}")
             except Exception as e:
                 print(f"[HF VID] {modelo} erro: {e}")
-    raise HTTPException(502, "HuggingFace vídeo indisponível")
+    raise HTTPException(502, "HuggingFace v�deo indispon�vel")
 
 
 async def gerar_imagem_fal(prompt: str, modelo: str = "fal-ai/flux/dev", width: int = 1024, height: int = 1024) -> str:
-    """Gera imagem via FAL.ai — Flux Dev, Flux Pro, SDXL e mais."""
+    """Gera imagem via FAL.ai � Flux Dev, Flux Pro, SDXL e mais."""
     key = FAL_API_KEY or os.getenv("FAL_API_KEY", "")
     if not key:
-        raise HTTPException(500, "FAL_API_KEY não configurada")
+        raise HTTPException(500, "FAL_API_KEY n�o configurada")
 
     async with httpx.AsyncClient(timeout=httpx.Timeout(120.0)) as client:
         # Submete o job
@@ -3201,10 +3201,10 @@ async def gerar_imagem_fal(prompt: str, modelo: str = "fal-ai/flux/dev", width: 
 
 
 async def gerar_video_fal(prompt: str, duracao: int = 5, modelo: str = "fal-ai/wan-t2v") -> str:
-    """Gera vídeo via FAL.ai — WAN 2.2, Kling, e mais."""
+    """Gera v�deo via FAL.ai � WAN 2.2, Kling, e mais."""
     key = FAL_API_KEY or os.getenv("FAL_API_KEY", "")
     if not key:
-        raise HTTPException(500, "FAL_API_KEY não configurada")
+        raise HTTPException(500, "FAL_API_KEY n�o configurada")
 
     MODELOS_FAL = {
         "wan": "fal-ai/wan-t2v",
@@ -3220,7 +3220,7 @@ async def gerar_video_fal(prompt: str, duracao: int = 5, modelo: str = "fal-ai/w
             json={"prompt": prompt, "duration": str(duracao)},
         )
         if not r.is_success:
-            raise HTTPException(502, f"FAL vídeo erro {r.status_code}: {r.text[:200]}")
+            raise HTTPException(502, f"FAL v�deo erro {r.status_code}: {r.text[:200]}")
         d = r.json()
         request_id = d.get("request_id")
         if not request_id:
@@ -3246,13 +3246,13 @@ async def gerar_video_fal(prompt: str, duracao: int = 5, modelo: str = "fal-ai/w
                 video = rd.get("video", {})
                 return video.get("url", "")
             if status == "FAILED":
-                raise HTTPException(502, f"FAL vídeo falhou")
-    raise HTTPException(504, "FAL vídeo timeout")
+                raise HTTPException(502, f"FAL v�deo falhou")
+    raise HTTPException(504, "FAL v�deo timeout")
 
 
 async def gerar_imagem_wavespeed(prompt: str, endpoint: str = "wavespeed-ai/flux-dev") -> str:
     if not WAVESPEED_API_KEY:
-        raise HTTPException(500, "WAVESPEED_API_KEY não configurada")
+        raise HTTPException(500, "WAVESPEED_API_KEY n�o configurada")
     ep = endpoint or "wavespeed-ai/flux-dev"
     
     # Tenta sync mode primeiro (resultado imediato)
@@ -3275,13 +3275,13 @@ async def gerar_imagem_wavespeed(prompt: str, endpoint: str = "wavespeed-ai/flux
         d = r.json()
         print(f"[WaveSpeed] resposta: {str(d)[:200]}")
         
-        # Modo sync — resultado já veio
+        # Modo sync � resultado j� veio
         data = d.get("data", {})
         outputs = data.get("outputs", [])
         if outputs:
             return outputs[0]
         
-        # Modo async — polling necessário
+        # Modo async � polling necess�rio
         request_id = data.get("id")
         if not request_id:
             raise HTTPException(502, f"WaveSpeed sem outputs e sem request_id: {d}")
@@ -3307,7 +3307,7 @@ async def gerar_imagem_wavespeed(prompt: str, endpoint: str = "wavespeed-ai/flux
 
 async def gerar_video_wavespeed(prompt: str, duracao: int = 5, modelo: str = "wavespeed-ai/wan-2.2/t2v-480p") -> str:
     if not WAVESPEED_API_KEY:
-        raise HTTPException(500, "WAVESPEED_API_KEY não configurada")
+        raise HTTPException(500, "WAVESPEED_API_KEY n�o configurada")
     # Tamanho baseado no modelo
     size = "720*1280" if "720p" in modelo else "480*832"
     async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
@@ -3316,10 +3316,10 @@ async def gerar_video_wavespeed(prompt: str, duracao: int = 5, modelo: str = "wa
             headers={"Authorization": f"Bearer {WAVESPEED_API_KEY}", "Content-Type": "application/json"},
             json={"prompt": prompt, "duration": duracao, "size": size},
         )
-        if not r.is_success: raise HTTPException(502, f"WaveSpeed vídeo erro {r.status_code}: {r.text[:200]}")
+        if not r.is_success: raise HTTPException(502, f"WaveSpeed v�deo erro {r.status_code}: {r.text[:200]}")
         d = r.json()
         request_id = d.get("data", {}).get("id")
-        if not request_id: raise HTTPException(502, "WaveSpeed não retornou request_id")
+        if not request_id: raise HTTPException(502, "WaveSpeed n�o retornou request_id")
 
     # Polling
     async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
@@ -3335,18 +3335,18 @@ async def gerar_video_wavespeed(prompt: str, duracao: int = 5, modelo: str = "wa
                 url = pd.get("data", {}).get("outputs", [None])[0]
                 if url: return url
             if status == "failed":
-                raise HTTPException(502, "WaveSpeed vídeo falhou")
+                raise HTTPException(502, "WaveSpeed v�deo falhou")
     raise HTTPException(504, "WaveSpeed timeout")
 
 
 
-# ── Endpoint /me — retorna tudo do usuário de uma vez ─────────────────────────
+# -- Endpoint /me � retorna tudo do usu�rio de uma vez -------------------------
 
 
-# ══════════════════════════════════════════════════════════════════
-# 🎬 VIDEO FACELESS AUTOMÁTICO — O maior diferencial do Vortex
-# Fluxo: Tema → Roteiro → Prompts de imagem → Imagens → Narração → Vídeo final
-# ══════════════════════════════════════════════════════════════════
+# ------------------------------------------------------------------
+# ?? VIDEO FACELESS AUTOM�TICO � O maior diferencial do Vortex
+# Fluxo: Tema ? Roteiro ? Prompts de imagem ? Imagens ? Narra��o ? V�deo final
+# ------------------------------------------------------------------
 class VideoFacelessRequest(BaseModel):
     tema: str
     nicho: Optional[str] = "viral"
@@ -3358,11 +3358,11 @@ class VideoFacelessRequest(BaseModel):
 @app.post("/video-faceless")
 async def gerar_video_faceless(request: VideoFacelessRequest):
     """
-    Gera um vídeo faceless completo em 1 clique:
+    Gera um v�deo faceless completo em 1 clique:
     1. Gera roteiro viral do tema
     2. Extrai cenas e prompts de imagem
     3. Gera imagens para cada cena
-    4. Gera narração com ElevenLabs
+    4. Gera narra��o com ElevenLabs
     5. Retorna tudo pronto para montar
     """
     resultado = {
@@ -3371,7 +3371,7 @@ async def gerar_video_faceless(request: VideoFacelessRequest):
         "etapas": {}
     }
 
-    # ETAPA 1 — Gerar roteiro
+    # ETAPA 1 � Gerar roteiro
     try:
         system = VORTEX_CRIADOR
         prompt_roteiro = f"""Crie um roteiro faceless viral de {request.duracao} segundos para {request.plataforma}.
@@ -3380,22 +3380,22 @@ TEMA: {request.tema}
 NICHO: {request.nicho}
 ESTILO: {request.estilo}
 
-FORMATO ESPECIAL PARA VÍDEO FACELESS:
+FORMATO ESPECIAL PARA V�DEO FACELESS:
 Divida em exatamente 5 CENAS numeradas.
-Para cada cena forneça:
-- NARRAÇÃO: texto exato que será narrado
-- VISUAL: descrição detalhada da imagem (em inglês, para gerar com IA)
-- DURAÇÃO: segundos desta cena
+Para cada cena forne�a:
+- NARRA��O: texto exato que ser� narrado
+- VISUAL: descri��o detalhada da imagem (em ingl�s, para gerar com IA)
+- DURA��O: segundos desta cena
 
-Formato obrigatório:
+Formato obrigat�rio:
 CENA 1 ({request.duracao//5}s)
-NARRAÇÃO: [texto]
-VISUAL: [descrição em inglês para gerar imagem]
+NARRA��O: [texto]
+VISUAL: [descri��o em ingl�s para gerar imagem]
 
 CENA 2 ...
 
 Ao final, inclua:
-TÍTULO: [título viral]
+T�TULO: [t�tulo viral]
 LEGENDA: [legenda para TikTok]
 HASHTAGS: [hashtags]"""
 
@@ -3405,11 +3405,11 @@ HASHTAGS: [hashtags]"""
     except Exception as e:
         raise HTTPException(500, f"Erro ao gerar roteiro: {str(e)[:100]}")
 
-    # ETAPA 2 — Extrair cenas e gerar imagens
+    # ETAPA 2 � Extrair cenas e gerar imagens
     import re as _re
     cenas = []
     visuais = _re.findall(r'VISUAL:\s*(.+?)(?=CENA|\Z)', roteiro, _re.DOTALL)
-    narracoes = _re.findall(r'NARRAÇÃO:\s*(.+?)(?=VISUAL|CENA|\Z)', roteiro, _re.DOTALL)
+    narracoes = _re.findall(r'NARRA��O:\s*(.+?)(?=VISUAL|CENA|\Z)', roteiro, _re.DOTALL)
 
     imagens_geradas = []
     for i, visual in enumerate(visuais[:5]):
@@ -3433,7 +3433,7 @@ HASHTAGS: [hashtags]"""
 
     resultado["etapas"]["imagens"] = imagens_geradas
 
-    # ETAPA 3 — Gerar narração completa
+    # ETAPA 3 � Gerar narra��o completa
     try:
         texto_narracao = " ".join([n.strip() for n in narracoes if n.strip()])
         if texto_narracao:
@@ -3442,8 +3442,8 @@ HASHTAGS: [hashtags]"""
     except Exception as e:
         resultado["etapas"]["audio_erro"] = str(e)[:100]
 
-    # ETAPA 4 — Extrair metadados
-    titulo_match = _re.search(r'TÍTULO:\s*(.+)', roteiro)
+    # ETAPA 4 � Extrair metadados
+    titulo_match = _re.search(r'T�TULO:\s*(.+)', roteiro)
     legenda_match = _re.search(r'LEGENDA:\s*(.+)', roteiro)
     hashtags_match = _re.search(r'HASHTAGS:\s*(.+)', roteiro)
 
@@ -3461,7 +3461,7 @@ HASHTAGS: [hashtags]"""
 @app.post("/gerar-imagem-free")
 @limiter.limit("20/minute")  # max 20 imagens por minuto por IP
 async def gerar_imagem_free(request: ImageRequest, req: Request):
-    """Endpoint gratuito — Gemini Imagen 3 → HuggingFace → Pollinations."""
+    """Endpoint gratuito � Gemini Imagen 3 ? HuggingFace ? Pollinations."""
     usuario_id = extrair_usuario_id(req, request)
     import urllib.parse, base64
     
@@ -3471,23 +3471,23 @@ async def gerar_imagem_free(request: ImageRequest, req: Request):
     modelo_req = request.modelo or "hf_flux"
     hf_key = os.getenv("HF_API_KEY", "")
 
-    # Cascata de imagem grátis — tenta em ordem até funcionar
+    # Cascata de imagem gr�tis � tenta em ordem at� funcionar
     print(f"[IMG-FREE] modelo={modelo_req} hf_key={bool(hf_key)}")
     erros_img = []
 
-    # 1. HuggingFace FLUX (melhor qualidade grátis)
+    # 1. HuggingFace FLUX (melhor qualidade gr�tis)
     if modelo_req in ("hf_flux", "") and hf_key:
         try:
             url = await gerar_imagem_hf(prompt_en)
-            return {"ok": True, "imagem": url, "modelo": "🤗 FLUX Schnell", "prompt_en": prompt_en}
+            return {"ok": True, "imagem": url, "modelo": "?? FLUX Schnell", "prompt_en": prompt_en}
         except Exception as e:
             erros_img.append(f"HF: {e}")
             print(f"[HF] falhou: {e}")
 
-    # 2. Gemini Image (grátis com nossa key)
+    # 2. Gemini Image (gr�tis com nossa key)
     try:
         url = await gerar_imagem_gemini(prompt_en)
-        return {"ok": True, "imagem": url, "modelo": "✨ Gemini Image", "prompt_en": prompt_en}
+        return {"ok": True, "imagem": url, "modelo": "? Gemini Image", "prompt_en": prompt_en}
     except Exception as e:
         erros_img.append(f"Gemini: {e}")
         print(f"[Gemini] falhou: {e}")
@@ -3495,39 +3495,39 @@ async def gerar_imagem_free(request: ImageRequest, req: Request):
     # 3. Pollinations (sempre funciona, ilimitado)
     try:
         url = await gerar_imagem_pollinations(prompt_en)
-        return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations", "prompt_en": prompt_en}
+        return {"ok": True, "imagem": url, "modelo": "?? Pollinations", "prompt_en": prompt_en}
     except Exception as e:
         erros_img.append(f"Pollinations: {e}")
         print(f"[Pollinations] falhou: {e}")
 
-    # Fallback final — Pollinations URL direta
+    # Fallback final � Pollinations URL direta
     import urllib.parse as _ul
     p = _ul.quote(prompt_en[:400])
     url = f"https://image.pollinations.ai/prompt/{p}?width=1280&height=1280&model=flux-pro&nologo=true&enhance=true"
-    return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations", "prompt_en": prompt_en}
+    return {"ok": True, "imagem": url, "modelo": "?? Pollinations", "prompt_en": prompt_en}
 
-    # Outros modelos específicos
+    # Outros modelos espec�ficos
     if modelo_req == "pollinations":
         import urllib.parse as _ul
-        # Enriquecer prompt para máxima qualidade
+        # Enriquecer prompt para m�xima qualidade
         prompt_rich = prompt_en + ", masterpiece, ultra detailed, professional photography, 8k uhd, sharp focus, perfect composition, award winning, trending on artstation"
         p = _ul.quote(prompt_rich[:600])
         url = f"https://image.pollinations.ai/prompt/{p}?width=1280&height=1280&model=flux-pro&nologo=true&enhance=true&seed={hash(prompt_en)%99999}"
-        return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations Flux Pro", "prompt_en": prompt_rich}
+        return {"ok": True, "imagem": url, "modelo": "?? Pollinations Flux Pro", "prompt_en": prompt_rich}
 
-    # Fallback automático — tenta tudo
+    # Fallback autom�tico � tenta tudo
     if hf_key:
         try:
             url = await gerar_imagem_hf(prompt_en)
-            return {"ok": True, "imagem": url, "modelo": "🤗 HuggingFace FLUX (auto)", "prompt_en": prompt_en}
+            return {"ok": True, "imagem": url, "modelo": "?? HuggingFace FLUX (auto)", "prompt_en": prompt_en}
         except: pass
 
     try:
         url = await gerar_imagem_gemini(prompt_en)
-        return {"ok": True, "imagem": url, "modelo": "🍌 Gemini (auto)", "prompt_en": prompt_en}
+        return {"ok": True, "imagem": url, "modelo": "?? Gemini (auto)", "prompt_en": prompt_en}
     except: pass
 
-    # Raphael AI — FLUX.1 Dev sem key, ilimitado
+    # Raphael AI � FLUX.1 Dev sem key, ilimitado
     try:
         import urllib.parse as _ul
         p = _ul.quote(prompt_en[:500])
@@ -3537,53 +3537,53 @@ async def gerar_imagem_free(request: ImageRequest, req: Request):
                 d = r.json()
                 if d.get("url") or d.get("image_url"):
                     url = d.get("url") or d.get("image_url")
-                    return {"ok": True, "imagem": url, "modelo": "✏️ Raphael AI FLUX Dev", "prompt_en": prompt_en}
+                    return {"ok": True, "imagem": url, "modelo": "?? Raphael AI FLUX Dev", "prompt_en": prompt_en}
     except Exception as e:
         print(f"[Raphael] falhou: {e}")
 
-    # Fallback final — Pollinations
+    # Fallback final � Pollinations
     import urllib.parse as _ul
     prompt_rich = prompt_en + ", masterpiece, ultra detailed, 8k uhd, sharp focus, cinematic"
     prompt_safe = _ul.quote(prompt_rich[:600])
     url = f"https://image.pollinations.ai/prompt/{prompt_safe}?width=1280&height=1280&model=flux-pro&nologo=true&enhance=true&seed={hash(prompt_en)%99999}"
-    return {"ok": True, "imagem": url, "modelo": "🌸 Pollinations Flux Pro", "prompt_en": prompt_en}
+    return {"ok": True, "imagem": url, "modelo": "?? Pollinations Flux Pro", "prompt_en": prompt_en}
 
 
 
-# ══════════════════════════════════════════════════════════════
-# VORTEX STUDIO — Pipeline completo de vídeo
-# Roteiro → Voz → Imagem → Vídeo = Vídeo único do Vortex
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# VORTEX STUDIO � Pipeline completo de v�deo
+# Roteiro ? Voz ? Imagem ? V�deo = V�deo �nico do Vortex
+# --------------------------------------------------------------
 
 class VortexStudioRequest(BaseModel):
     tema:       str
     nicho:      str = "geral"
     estilo:     str = "cinematografico"  # cinematografico, viral, educacional
     voz_id:     str = "default"          # ID da voz clonada
-    modelo_video: str = "kling3_std"     # modelo de vídeo a usar
+    modelo_video: str = "kling3_std"     # modelo de v�deo a usar
     duracao:    int = 30                 # segundos
 
 @app.post("/vortex-studio/criar")
 @limiter.limit("3/minute")
 async def vortex_studio(data: VortexStudioRequest, request: Request):
     """
-    Vortex Studio — Pipeline completo:
+    Vortex Studio � Pipeline completo:
     1. Claude Sonnet gera roteiro + prompt visual
-    2. ElevenLabs gera narração
+    2. ElevenLabs gera narra��o
     3. FLUX gera imagem base com estilo Vortex
     4. Kling/WAN anima a imagem com a voz
 
-    Resultado: vídeo único com identidade visual Vortex.
+    Resultado: v�deo �nico com identidade visual Vortex.
     """
     usuario_id = extrair_usuario_id(request)
 
-    # Verificar plano — só Creator+
+    # Verificar plano � s� Creator+
     from creditos import get_usuario
     user_data = get_usuario(usuario_id)
     plano = user_data.get("plano", "free")
     planos_permitidos = ["creator", "pro", "elite", "elite_lifetime"]
     if plano not in planos_permitidos:
-        raise HTTPException(403, "Vortex Studio disponível a partir do plano Creator.")
+        raise HTTPException(403, "Vortex Studio dispon�vel a partir do plano Creator.")
 
     # Calcular custo total
     CUSTO_STUDIO = {
@@ -3597,7 +3597,7 @@ async def vortex_studio(data: VortexStudioRequest, request: Request):
 
     from creditos import verificar_saldo, debitar_creditos
     if verificar_saldo(usuario_id, creditos_necessarios) < creditos_necessarios:
-        raise HTTPException(402, f"Créditos insuficientes. Vortex Studio requer {creditos_necessarios} créditos.")
+        raise HTTPException(402, f"Cr�ditos insuficientes. Vortex Studio requer {creditos_necessarios} cr�ditos.")
 
     resultado = {
         "status": "processando",
@@ -3622,13 +3622,13 @@ async def vortex_studio(data: VortexStudioRequest, request: Request):
     estilo_visual = ESTILOS_VORTEX.get(data.estilo, ESTILOS_VORTEX["cinematografico"])
 
     try:
-        # ── ETAPA 1: ROTEIRO com Claude ──────────────────────────
+        # -- ETAPA 1: ROTEIRO com Claude --------------------------
         resultado["etapas"]["roteiro"]["status"] = "processando"
-        print(f"[STUDIO] Etapa 1/4 — Gerando roteiro com Claude...")
+        print(f"[STUDIO] Etapa 1/4 � Gerando roteiro com Claude...")
 
         ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
         if not ANTHROPIC_KEY:
-            raise Exception("ANTHROPIC_API_KEY não configurada")
+            raise Exception("ANTHROPIC_API_KEY n�o configurada")
 
         async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
             r = await client.post(
@@ -3646,12 +3646,12 @@ async def vortex_studio(data: VortexStudioRequest, request: Request):
                         "content": f"""Crie um roteiro viral para TikTok sobre "{data.tema}" no nicho de {data.nicho}.
 
 O roteiro deve ter:
-1. NARRAÇÃO: texto para narrar (máx 150 palavras para {data.duracao}s)
-2. PROMPT_VISUAL: descrição em inglês da cena principal para gerar imagem
+1. NARRA��O: texto para narrar (m�x 150 palavras para {data.duracao}s)
+2. PROMPT_VISUAL: descri��o em ingl�s da cena principal para gerar imagem
 
 Formato de resposta:
-NARRAÇÃO: [texto aqui]
-PROMPT_VISUAL: [descrição visual em inglês aqui]
+NARRA��O: [texto aqui]
+PROMPT_VISUAL: [descri��o visual em ingl�s aqui]
 
 Estilo visual: {data.estilo}"""
                     }],
@@ -3666,8 +3666,8 @@ Estilo visual: {data.estilo}"""
         prompt_visual = ""
 
         for linha in claude_resp.split("\n"):
-            if linha.startswith("NARRAÇÃO:"):
-                naracao = linha.replace("NARRAÇÃO:", "").strip()
+            if linha.startswith("NARRA��O:"):
+                naracao = linha.replace("NARRA��O:", "").strip()
             elif linha.startswith("PROMPT_VISUAL:"):
                 prompt_visual = linha.replace("PROMPT_VISUAL:", "").strip()
 
@@ -3683,14 +3683,14 @@ Estilo visual: {data.estilo}"""
             "status": "concluido",
             "resultado": {"naracao": naracao, "prompt_visual": prompt_visual_final}
         }
-        print(f"[STUDIO] ✅ Etapa 1 concluída — {len(naracao)} chars de narração")
+        print(f"[STUDIO] ? Etapa 1 conclu�da � {len(naracao)} chars de narra��o")
 
-        # ── ETAPA 2: VOZ com ElevenLabs ──────────────────────────
+        # -- ETAPA 2: VOZ com ElevenLabs --------------------------
         resultado["etapas"]["voz"]["status"] = "processando"
-        print(f"[STUDIO] Etapa 2/4 — Gerando voz com ElevenLabs...")
+        print(f"[STUDIO] Etapa 2/4 � Gerando voz com ElevenLabs...")
 
         EL_KEY = os.getenv("ELEVENLABS_API_KEY", "")
-        voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel — voz padrão Vortex
+        voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel � voz padr�o Vortex
 
         audio_url = None
         if EL_KEY:
@@ -3708,16 +3708,16 @@ Estilo visual: {data.estilo}"""
                     import base64
                     audio_b64 = base64.b64encode(r_voz.content).decode()
                     audio_url = f"data:audio/mpeg;base64,{audio_b64[:100]}..."
-                    print(f"[STUDIO] ✅ Etapa 2 concluída — áudio gerado")
+                    print(f"[STUDIO] ? Etapa 2 conclu�da � �udio gerado")
 
         resultado["etapas"]["voz"] = {
             "status": "concluido" if audio_url else "fallback",
             "resultado": {"audio_gerado": bool(audio_url)}
         }
 
-        # ── ETAPA 3: IMAGEM com FLUX ──────────────────────────────
+        # -- ETAPA 3: IMAGEM com FLUX ------------------------------
         resultado["etapas"]["imagem"]["status"] = "processando"
-        print(f"[STUDIO] Etapa 3/4 — Gerando imagem base...")
+        print(f"[STUDIO] Etapa 3/4 � Gerando imagem base...")
 
         FAL_KEY = os.getenv("FAL_API_KEY", "")
         imagem_url = None
@@ -3737,22 +3737,22 @@ Estilo visual: {data.estilo}"""
                 if r_img.is_success:
                     img_data = r_img.json()
                     imagem_url = img_data.get("images", [{}])[0].get("url", "")
-                    print(f"[STUDIO] ✅ Etapa 3 concluída — imagem gerada")
+                    print(f"[STUDIO] ? Etapa 3 conclu�da � imagem gerada")
 
-        # Fallback: Pollinations grátis
+        # Fallback: Pollinations gr�tis
         if not imagem_url:
             import urllib.parse
             imagem_url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt_visual_final[:200])}"
-            print(f"[STUDIO] ⚠️ Usando Pollinations como fallback")
+            print(f"[STUDIO] ?? Usando Pollinations como fallback")
 
         resultado["etapas"]["imagem"] = {
             "status": "concluido",
             "resultado": {"url": imagem_url}
         }
 
-        # ── ETAPA 4: VÍDEO com FAL ────────────────────────────────
+        # -- ETAPA 4: V�DEO com FAL --------------------------------
         resultado["etapas"]["video"]["status"] = "processando"
-        print(f"[STUDIO] Etapa 4/4 — Animando com {data.modelo_video}...")
+        print(f"[STUDIO] Etapa 4/4 � Animando com {data.modelo_video}...")
 
         MODELOS_FAL = {
             "wan22_fast":  "fal-ai/wan/t2v-1.3b",
@@ -3778,7 +3778,7 @@ Estilo visual: {data.estilo}"""
                 if r_vid.is_success:
                     vid_data = r_vid.json()
                     video_url = vid_data.get("video", {}).get("url", "")
-                    print(f"[STUDIO] ✅ Etapa 4 concluída — vídeo gerado!")
+                    print(f"[STUDIO] ? Etapa 4 conclu�da � v�deo gerado!")
 
         resultado["etapas"]["video"] = {
             "status": "concluido" if video_url else "erro",
@@ -3787,7 +3787,7 @@ Estilo visual: {data.estilo}"""
         resultado["video_final"] = video_url
         resultado["status"] = "concluido"
 
-        # Debitar créditos só se gerou vídeo
+        # Debitar cr�ditos s� se gerou v�deo
         if video_url:
             debitar_creditos(usuario_id, creditos_necessarios, "vortex_studio")
             # Atualizar DNA
@@ -3798,28 +3798,28 @@ Estilo visual: {data.estilo}"""
         return {
             "ok": bool(video_url),
             "resultado": resultado,
-            "mensagem": "✅ Vídeo criado pelo Vortex Studio!" if video_url else "⚠️ Erro na geração do vídeo",
+            "mensagem": "? V�deo criado pelo Vortex Studio!" if video_url else "?? Erro na gera��o do v�deo",
         }
 
     except Exception as e:
-        print(f"[STUDIO] ❌ Erro: {e}")
+        print(f"[STUDIO] ? Erro: {e}")
         raise HTTPException(500, f"Vortex Studio falhou: {str(e)}")
 
 
-# ══════════════════════════════════════════════════════════════
-# GEMMA 4 VISION — análise de imagem grátis
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# GEMMA 4 VISION � an�lise de imagem gr�tis
+# --------------------------------------------------------------
 @app.post("/gemma4/analisar-imagem")
 async def gemma4_analisar(data: dict, request: Request):
     """
-    Analisa imagem com Gemma 4 — grátis com HF_API_KEY.
+    Analisa imagem com Gemma 4 � gr�tis com HF_API_KEY.
     Usos: analisar thumbnail, ver objetos, ler texto em imagem.
     """
     imagem_url = data.get("url", "")
-    pergunta   = data.get("pergunta", "O que você vê nessa imagem? Seja detalhado.")
+    pergunta   = data.get("pergunta", "O que voc� v� nessa imagem? Seja detalhado.")
 
     if not imagem_url:
-        raise HTTPException(400, "URL da imagem obrigatória")
+        raise HTTPException(400, "URL da imagem obrigat�ria")
 
     try:
         resultado = await gemma4_analisar_imagem(imagem_url, pergunta)
@@ -3828,22 +3828,22 @@ async def gemma4_analisar(data: dict, request: Request):
         raise HTTPException(500, f"Gemma 4 Vision falhou: {str(e)}")
 
 
-# ══════════════════════════════════════════════════════════════
-# AIML — FEATURE 1: Imagem com FLUX/GPT Image via AIML
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# AIML � FEATURE 1: Imagem com FLUX/GPT Image via AIML
+# --------------------------------------------------------------
 @app.post("/aiml/gerar-imagem")
 async def aiml_imagem(data: dict, request: Request = None):
-    """Gera imagem via AIML — FLUX Schnell (grátis) ou GPT Image 1.5"""
+    """Gera imagem via AIML � FLUX Schnell (gr�tis) ou GPT Image 1.5"""
     prompt  = data.get("prompt", "")
     modelo  = data.get("modelo", "flux/schnell")
     tamanho = data.get("tamanho", "1024x1024")
     
     if not prompt:
-        raise HTTPException(400, "Prompt obrigatório")
+        raise HTTPException(400, "Prompt obrigat�rio")
     
     aiml_key = os.getenv("AIML_API_KEY", AIML_API_KEY)
     if not aiml_key:
-        raise HTTPException(503, "AIML_API_KEY não configurada — adicione no Render")
+        raise HTTPException(503, "AIML_API_KEY n�o configurada � adicione no Render")
     
     try:
         url = await aiml_gerar_imagem(prompt, modelo, tamanho)
@@ -3852,13 +3852,13 @@ async def aiml_imagem(data: dict, request: Request = None):
         raise HTTPException(500, f"AIML imagem falhou: {str(e)}")
 
 
-# ══════════════════════════════════════════════════════════════
-# AIML — FEATURE 2: Vídeo com Veo 3.1 / Kling / WAN via AIML
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# AIML � FEATURE 2: V�deo com Veo 3.1 / Kling / WAN via AIML
+# --------------------------------------------------------------
 @app.post("/aiml/gerar-video")
 async def aiml_video(data: dict, request: Request = None):
     """
-    Gera vídeo via AIML com polling automático.
+    Gera v�deo via AIML com polling autom�tico.
     Modelos: google/veo-3.0-generate, kling-video/v1.5/standard/text-to-video
     """
     prompt     = data.get("prompt", "")
@@ -3866,26 +3866,26 @@ async def aiml_video(data: dict, request: Request = None):
     imagem_url = data.get("imagem_url", "")
     
     if not prompt:
-        raise HTTPException(400, "Prompt obrigatório")
+        raise HTTPException(400, "Prompt obrigat�rio")
     
     aiml_key = os.getenv("AIML_API_KEY", AIML_API_KEY)
     if not aiml_key:
-        raise HTTPException(503, "AIML_API_KEY não configurada — adicione no Render")
+        raise HTTPException(503, "AIML_API_KEY n�o configurada � adicione no Render")
     
     try:
         video_url = await aiml_gerar_video(prompt, modelo, imagem_url)
         return {"ok": True, "video_url": video_url, "modelo": modelo, "provider": "aiml"}
     except Exception as e:
-        raise HTTPException(500, f"AIML vídeo falhou: {str(e)}")
+        raise HTTPException(500, f"AIML v�deo falhou: {str(e)}")
 
 
-# ══════════════════════════════════════════════════════════════
-# AIML — FEATURE 3: TTS — Narrar roteiro automaticamente
-# ══════════════════════════════════════════════════════════════
+# --------------------------------------------------------------
+# AIML � FEATURE 3: TTS � Narrar roteiro automaticamente
+# --------------------------------------------------------------
 @app.post("/aiml/tts")
 async def aiml_tts(data: dict, request: Request = None):
     """
-    Converte texto em áudio via AIML (OpenAI TTS).
+    Converte texto em �udio via AIML (OpenAI TTS).
     Vozes: alloy, echo, fable, onyx, nova, shimmer
     Modelos: tts-1, tts-1-hd
     """
@@ -3895,11 +3895,11 @@ async def aiml_tts(data: dict, request: Request = None):
     modelo = data.get("modelo", "tts-1")
     
     if not texto:
-        raise HTTPException(400, "Texto obrigatório")
+        raise HTTPException(400, "Texto obrigat�rio")
     
     aiml_key = os.getenv("AIML_API_KEY", AIML_API_KEY)
     if not aiml_key:
-        raise HTTPException(503, "AIML_API_KEY não configurada — adicione no Render")
+        raise HTTPException(503, "AIML_API_KEY n�o configurada � adicione no Render")
     
     try:
         audio_bytes = await aiml_text_to_speech(texto, voz, modelo)
@@ -3917,23 +3917,23 @@ async def aiml_tts(data: dict, request: Request = None):
 
 @app.post("/gerar-video-free")
 async def gerar_video_free(request: VideoRequest):
-    """Vídeo gratuito via HuggingFace LTX-Video."""
+    """V�deo gratuito via HuggingFace LTX-Video."""
     prompt_en = request.prompt + ", cinematic, high quality, smooth motion"
     hf_key = os.getenv("HF_API_KEY", "")
     if not hf_key:
-        raise HTTPException(500, "HF_API_KEY não configurada. Configure no Render Environment.")
+        raise HTTPException(500, "HF_API_KEY n�o configurada. Configure no Render Environment.")
     try:
         url = await gerar_video_hf(prompt_en)
         return {"ok": True, "video_url": url, "modelo": "HuggingFace LTX-Video (free)", "prompt_en": prompt_en}
     except Exception as e:
-        raise HTTPException(502, f"Vídeo HF falhou: {str(e)[:100]}")
+        raise HTTPException(502, f"V�deo HF falhou: {str(e)[:100]}")
 
 
 @app.post("/cerebro/feedback")
 async def cerebro_feedback(request: Request):
     """
-    Recebe feedback do usuário sobre roteiros e imagens.
-    Isso alimenta o aprendizado do cérebro do Vortex.
+    Recebe feedback do usu�rio sobre roteiros e imagens.
+    Isso alimenta o aprendizado do c�rebro do Vortex.
     """
     data = await request.json()
     tipo = data.get("tipo", "roteiro")
@@ -3953,7 +3953,7 @@ async def cerebro_feedback(request: Request):
 
 @app.get("/cerebro/status")
 async def cerebro_status():
-    """Retorna o estado atual do cérebro do Vortex."""
+    """Retorna o estado atual do c�rebro do Vortex."""
     estado = get_estado_cerebro()
     return {"ok": True, "cerebro": estado}
 
@@ -3983,22 +3983,22 @@ def get_me(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    print("\n" + "═"*70)
-    print("  🔥 VORTEX AI Backend v6.0 HOLLYWOOD EDITION")
-    print("  🌐 http://127.0.0.1:8082")
-    print("═"*70)
-    print(f"  Groq          {'✅' if GROQ_API_KEY        else '❌'}")
-    print(f"  Gemini        {'✅' if GEMINI_API_KEY      else '❌'}")
-    print(f"  Leonardo AI   {'✅' if LEONARDO_API_KEY    else '❌'}")
-    print(f"  Runway Gen-3  {'✅' if RUNWAY_API_KEY      else '❌'}")
-    print(f"  ElevenLabs    {'✅' if ELEVENLABS_API_KEY  else '❌'}")
-    print("═"*70)
-    print("  🎬 MODO DIRETOR: segundo a segundo")
-    print("  📊 SCORE VIRAL: 5 dimensões")
-    print("  🧬 DNA CRIADOR: aprende com roteiros aprovados")
-    print("  📺 MODO SÉRIE: 3 episódios conectados")
-    print("  🅰️🅱️ MODO A/B: 2 versões por roteiro")
-    print("  📅 CALENDÁRIO: melhor dia/hora por plataforma")
-    print("  🏢 MODO AGÊNCIA: múltiplos canais")
-    print("═"*70+"\n")
+    print("\n" + "-"*70)
+    print("  ?? VORTEX AI Backend v6.0 HOLLYWOOD EDITION")
+    print("  ?? http://127.0.0.1:8082")
+    print("-"*70)
+    print(f"  Groq          {'?' if GROQ_API_KEY        else '?'}")
+    print(f"  Gemini        {'?' if GEMINI_API_KEY      else '?'}")
+    print(f"  Leonardo AI   {'?' if LEONARDO_API_KEY    else '?'}")
+    print(f"  Runway Gen-3  {'?' if RUNWAY_API_KEY      else '?'}")
+    print(f"  ElevenLabs    {'?' if ELEVENLABS_API_KEY  else '?'}")
+    print("-"*70)
+    print("  ?? MODO DIRETOR: segundo a segundo")
+    print("  ?? SCORE VIRAL: 5 dimens�es")
+    print("  ?? DNA CRIADOR: aprende com roteiros aprovados")
+    print("  ?? MODO S�RIE: 3 epis�dios conectados")
+    print("  ?????? MODO A/B: 2 vers�es por roteiro")
+    print("  ?? CALEND�RIO: melhor dia/hora por plataforma")
+    print("  ?? MODO AG�NCIA: m�ltiplos canais")
+    print("-"*70+"\n")
     uvicorn.run(app, host="127.0.0.1", port=8082, reload=False)
