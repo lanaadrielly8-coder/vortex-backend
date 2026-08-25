@@ -203,12 +203,12 @@ def extrair_usuario_id(request: Request, data_obj=None) -> str:
     return f"ip_{ip.replace('.','_')}"
 
 # Dom�nios permitidos � adicionar dom�nio customizado quando tiver
-AALLOWED_ORIGINS = ["*"]  # temp
-ALLOWED_ORIGINS_DISABLED = [
+ALLOWED_ORIGINS = ["*"]
+ALLOWED_ORIGINS_OLD = [
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://vortex-frontend-iota.vercel.app",`n    "https://vortex-frontend-1hgunmnev.vercel.app",
-    
+    "https://vortex-frontend-iota.vercel.app",
+  "https://vortex-frontend-1hgunmnev.vercel.app",
     "https://vortex-fr-git-40ab27-pjoaovitorpereiradasilva533-9939s-projects.vercel.app",
     "https://vortex.com.br",
     "https://www.vortex.com.br",
@@ -219,7 +219,7 @@ ALLOWED_ORIGINS_DISABLED = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=False,
+    allow_credentials=Fal
     allow_methods=["*"],
     allow_headers=["*"],
 )
