@@ -1420,32 +1420,6 @@ async def gerar_imagem_pollinations(prompt: str, width: int = 1024, height: int 
 # IMAGEM GRÃTIS â€” HuggingFace + Gemini + Pollinations + Raphael
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-async def gerar_imagem_hf(prompt: str) -> str:
-    """HuggingFace FLUX Schnell â€” grÃ¡tis com HF_API_KEY."""
-    key = os.getenv("HF_API_KEY", "")
-    if not key:
-        raise Exception("HF_API_KEY nÃ£o configurada")
-    async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
-        r = await client.post(
-            "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
-            headers={"Authorization": f"Bearer {key}"},
-            json={"inputs": prompt, "parameters": {"num_inference_steps": 4}},
-        )
-        if not r.is_success:
-            raise Exception(f"HF erro {r.status_code}: {r.text[:200]}")
-        import base64
-        b64 = base64.b64encode(r.content).decode()
-        return f"data:image/jpeg;base64,{b64}"
-
-
-
-async def gerar_imagem_pollinations(prompt: str, width: int = 1024, height: int = 1024) -> str:
-    """Pollinations.ai â€” grÃ¡tis, ilimitado, sem key."""
-    import urllib.parse, random
-    prompt_enc = urllib.parse.quote(prompt[:500])
-    seed = random.randint(1, 99999)
-    url = f"https://image.pollinations.ai/prompt/{prompt_enc}?width={width}&height={height}&seed={seed}&nologo=true&enhance=true"
-    return url
 
 
 async def gemma4_analisar_imagem(imagem_url: str, pergunta: str = "O que vocÃª vÃª nessa imagem?") -> str:
