@@ -1438,30 +1438,6 @@ async def gerar_imagem_hf(prompt: str) -> str:
         return f"data:image/jpeg;base64,{b64}"
 
 
-async def gerar_imagem_gemini(prompt: str) -> str:
-    """Gemini 2.0 Flash Image â€” grÃ¡tis com GEMINI_API_KEY."""
-    key = os.getenv("GEMINI_API_KEY", "")
-    if not key:
-        raise Exception("GEMINI_API_KEY nÃ£o configurada")
-    async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
-        r = await client.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key={key}",
-            json={
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"responseModalities": ["IMAGE", "TEXT"]},
-            }
-        )
-        if not r.is_success:
-            raise Exception(f"Gemini Image erro {r.status_code}: {r.text[:200]}")
-        data = r.json()
-        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-        for part in parts:
-            if "inlineData" in part:
-                b64 = part["inlineData"]["data"]
-                mime = part["inlineData"].get("mimeType", "image/png")
-                return f"data:{mime};base64,{b64}"
-        raise Exception("Gemini nÃ£o retornou imagem")
-
 
 async def gerar_imagem_pollinations(prompt: str, width: int = 1024, height: int = 1024) -> str:
     """Pollinations.ai â€” grÃ¡tis, ilimitado, sem key."""
