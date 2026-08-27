@@ -1318,7 +1318,7 @@ MÉDIA: X/10 — [VIRAL/POTENCIAL/RETRABALHAR]"""
                 provedor_preferido="gemini",
             )
         except:
-            raise HTTPException(500, "Serviço temporariamente indisponível. Tente novamente.")
+            raise HTTPException(500, f"Erro interno: {str(e_chat)[:200]}")
     debitar_creditos(usuario_id, 1, "chat")
     incrementar_limite_diario(usuario_id, "chat")
     incrementar_limite(usuario_id, "chat")
@@ -3992,4 +3992,5 @@ if __name__ == "__main__":
     print("  🏢 MODO AGÊNCIA: múltiplos canais")
     print("═"*70+"\n")
     uvicorn.run(app, host="127.0.0.1", port=8082, reload=False)
+
 
